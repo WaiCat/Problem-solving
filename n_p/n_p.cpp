@@ -3,14 +3,14 @@
 #include <sstream>
 
 using namespace std;
-https://blog.ugonfor.kr/52
+
 int main() {
     ifstream inFile("1.txt"); // 입력 파일 열기
     ofstream outFile("output.txt"); // 출력 파일 열기
 
     int i, j;
     inFile >> i >> j; // 파일에서 입력 받기
-xxxxx`
+
     outFile << i << " " << j << " "; // 파일에 출력
 
     int count = 0;
