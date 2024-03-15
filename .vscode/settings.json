@@ -1,1 +1,8 @@
-{}
+{
+  "files.associations": {
+    "iosfwd": "cpp",
+    "fstream": "cpp",
+    "random": "cpp",
+    "limits": "cpp"
+  }
+}
