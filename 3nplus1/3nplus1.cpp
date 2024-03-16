@@ -6,7 +6,7 @@ using namespace std;
 
 int main() {
     ifstream fin; ofstream fout;
-    fin.open("1.inp"); fout.open("3nplus1.out");
+    fin.open("3nplus1.inp"); fout.open("3nplus1.out");
 
     int i, j;
 
