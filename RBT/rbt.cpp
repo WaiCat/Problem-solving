@@ -7,11 +7,11 @@ using namespace std;
 
 struct Node {
     int val;
-    char color = 'RED';
+    bool is_red;
     Node* left;
     Node* right;
     
-    Node(int x) : val(x), left(nullptr), right(nullptr) {}
+    Node(int x, bool red = true) : val(x), is_red(red), left(nullptr), right(nullptr) {}
 };
 
 class BST {
@@ -151,7 +151,7 @@ int main() {
   cout << "Is 10 in the BST? " << (bst.search(10) ? "Yes" : "No") << endl;
 
   bst.remove(2);
-  cout << "Inorder Traversal after removing 3: ";
+  cout << "Inorder Traversal after removing 2: ";
   bst.inorderTraversal();
 
   return 0;
