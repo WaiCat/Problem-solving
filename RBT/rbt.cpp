@@ -5,243 +5,238 @@
 using namespace std;
 
 struct Node {
-    int val;
-    bool is_red;
+    int data;
     Node* left;
     Node* right;
     Node* parent;
+    bool is_red;
 
-    Node(int x, bool red = true) : val(x), is_red(red), left(nullptr), right(nullptr), parent(nullptr) {}
+    Node(int value, Node* p, bool red = true) : data(value), left(nullptr), right(nullptr), parent(p), is_red(red) {}
 };
 
 class BST {
 private:
     Node* root;
 
-    Node* insert(Node* root, int val) {
-        if (root == nullptr) {
-            return new Node(val);
-        }
-
-        if (val < root->val) {
-            root->left = insert(root->left, val);
-            root->left->parent = root;
-        }
-        else if (val > root->val) {
-            root->right = insert(root->right, val);
-            root->right->parent = root;
-        }
-
-        checkColor(root);
-
-        return root;
+    // 새로운 노드 생성
+    Node* createNode(int value, Node* parent, bool red = true) {
+        return new Node(value, parent, red);
     }
 
-    Node* findMinNode(Node* node) {
-        Node* current = node;
-        while (current && current->left != nullptr) {
-            current = current->left;
+    // 왼쪽 회전
+    void rotateLeft(Node* node) {
+        Node* child = node->right;
+        node->right = child->left;
+        if (child->left != nullptr)
+            child->left->parent = node;
+        child->parent = node->parent;
+        if (node->parent == nullptr)
+            root = child;
+        else if (node == node->parent->left)
+            node->parent->left = child;
+        else
+            node->parent->right = child;
+        child->left = node;
+        node->parent = child;
+    }
+
+    // 오른쪽 회전
+    void rotateRight(Node* node) {
+        Node* child = node->left;
+        node->left = child->right;
+        if (child->right != nullptr)
+            child->right->parent = node;
+        child->parent = node->parent;
+        if (node->parent == nullptr)
+            root = child;
+        else if (node == node->parent->right)
+            node->parent->right = child;
+        else
+            node->parent->left = child;
+        child->right = node;
+        node->parent = child;
+    }
+
+    void checkColor(Node*& current) {
+    while (current != nullptr && current->parent != nullptr && current->parent->is_red) {
+        Node* parent = current->parent;
+        Node* grandparent = parent->parent;
+
+        // Case 1: 부모 노드가 왼쪽 자식인 경우
+        if (parent == grandparent->left) {
+            Node* uncle = grandparent->right;
+
+            // Case 1-1: 삼촌 노드가 빨간색인 경우
+            if (uncle != nullptr && uncle->is_red) {
+                parent->is_red = false;
+                uncle->is_red = false;
+                grandparent->is_red = true;
+                current = grandparent;
+            }
+            // Case 1-2: 삼촌 노드가 검은색인 경우
+            else {
+                // Case 1-2-1: 현재 노드가 부모의 오른쪽 자식인 경우
+                if (current == parent->right) {
+                    current = parent;
+                    rotateLeft(current);
+                    parent = current->parent;
+                }
+                // Case 1-2-2: 현재 노드가 부모의 왼쪽 자식인 경우
+                parent->is_red = false;
+                grandparent->is_red = true;
+                rotateRight(grandparent);
+            }
         }
+        // Case 2: 부모 노드가 오른쪽 자식인 경우 (위의 Case 1과 대칭적으로 처리)
+        else {
+            Node* uncle = grandparent->left;
+
+            // Case 2-1: 삼촌 노드가 빨간색인 경우
+            if (uncle != nullptr && uncle->is_red) {
+                parent->is_red = false;
+                uncle->is_red = false;
+                grandparent->is_red = true;
+                current = grandparent;
+            }
+            // Case 2-2: 삼촌 노드가 검은색인 경우
+            else {
+                // Case 2-2-1: 현재 노드가 부모의 왼쪽 자식인 경우
+                if (current == parent->left) {
+                    current = parent;
+                    rotateRight(current);
+                    parent = current->parent;
+                }
+                // Case 2-2-2: 현재 노드가 부모의 오른쪽 자식인 경우
+                parent->is_red = false;
+                grandparent->is_red = true;
+                rotateLeft(grandparent);
+            }
+        }
+    }
+    root->is_red = false; // Root는 항상 검은색
+}
+
+
+
+    // 삽입 함수
+    void insert(Node*& current, int value, Node* parent) {
+        if (current == nullptr) {
+            current = createNode(value, parent);
+        } else if (value < current->data) {
+            insert(current->left, value, current);
+        } else if (value > current->data) {
+            insert(current->right, value, current);
+        }
+
+        checkColor(current);
+    }
+
+    // 중위 순회를 사용하여 트리 출력
+    void inorderTraversal(Node* current) {
+        if (current != nullptr) {
+            inorderTraversal(current->left);
+            std::cout << "Value: " << current->data << " Is Red: " << (current->is_red ? "true" : "false") << std::endl;
+            inorderTraversal(current->right);
+        }
+    }
+
+    // 최소값 노드 찾기
+    Node* minValueNode(Node* node) {
+        Node* current = node;
+        while (current->left != nullptr)
+            current = current->left;
         return current;
     }
 
-    Node* remove(Node* root, int val) {
-        if (root == nullptr) {
-            return root;
-        }
-
-        if (val < root->val) {
-            root->left = remove(root->left, val);
-        }
-        else if (val > root->val) {
-            root->right = remove(root->right, val);
-        }
-        else {
-            if (root->left == nullptr) {
-                Node* temp = root->right;
-                delete root;
-                return temp;
-            }
-            else if (root->right == nullptr) {
-                Node* temp = root->left;
-                delete root;
-                return temp;
-            }
-
-            Node* temp = findMinNode(root->right);
-            root->val = temp->val;
-            root->right = remove(root->right, temp->val);
-        }
-        
-        checkColor(root);
-
-        return root;
-    }
-
-    bool search(Node* root, int val) {
-        if (root == nullptr) {
-            return false;
-        }
-
-        if (val == root->val) {
-            return root->is_red;
-        }
-        else if (val < root->val) {
-            return search(root->left, val);
-        }
-        else {
-            return search(root->right, val);
-        }
-    }
-
-    void inorderTraversal(Node* root) {
-        if (root == nullptr) {
+    // 노드 삭제
+    void remove(Node*& current, int key) {
+        if (current == nullptr)
             return;
-        }
 
-        inorderTraversal(root->left);
-        cout << root->val << " ";
-        inorderTraversal(root->right);
-    }
+        if (key < current->data)
+            remove(current->left, key);
+        else if (key > current->data)
+            remove(current->right, key);
+        else {
+            if (current->left == nullptr || current->right == nullptr) {
+                Node* temp = current->left ? current->left : current->right;
 
-    void checkColor(Node* root) {
-        if(root->is_red){
-            Node* parent = root->parent;
-            Node* grandparent = (parent != nullptr) ? parent->parent : nullptr;
-            if (grandparent != nullptr) {
-                Node* uncle = (parent == grandparent->left) ? grandparent->right : grandparent->left;
-                if(uncle != nullptr && uncle->is_red){
-                    parent->is_red = false;
-                    uncle->is_red = false;
-                    grandparent->is_red = true;
+                if (temp == nullptr) {
+                    temp = current;
+                    current = nullptr;
                 } else {
-                    if (root == parent->right && parent == grandparent->left) {
-                        // Left-Right Case: parent를 중심으로 좌회전 후 우회전
-                        leftRotate(parent);
-                        root = root->left;
-                    } else if (root == parent->left && parent == grandparent->right) {
-                        // Right-Left Case: parent를 중심으로 우회전 후 좌회전
-                        rightRotate(parent);
-                        root = root->right;
-                    }
-                    parent = root->parent;
-                    grandparent = (parent != nullptr) ? parent->parent : nullptr;
-
-                    // grandparent의 색상 변경 및 회전 수행
-                    if (parent != nullptr && grandparent != nullptr) {
-                        parent->is_red = false;
-                        grandparent->is_red = true;
-                        if (root == parent->left && parent == grandparent->left) {
-                            rightRotate(grandparent);
-                        } else {
-                            leftRotate(grandparent);
-                        }
-                    }
+                    *current = *temp;
                 }
+                delete temp;
+            } else {
+                Node* temp = minValueNode(current->right);
+                current->data = temp->data;
+                remove(current->right, temp->data);
             }
         }
     }
-
-
-    void leftRotate(Node* root) {
-    if (root == nullptr || root->right == nullptr)
-        return;
-
-    Node* rightChild = root->right;
-    root->right = rightChild->left;
-    if (rightChild->left != nullptr)
-        rightChild->left->parent = root;
-
-    rightChild->parent = root->parent;
-    if (root->parent != nullptr) {
-        if (root == root->parent->left)
-            root->parent->left = rightChild;
-        else
-            root->parent->right = rightChild;
-    } else {
-        root->parent = rightChild;
-    }
-
-    rightChild->left = root;
-    root->parent = rightChild;
-}
-
-void rightRotate(Node* root) {
-    if (root == nullptr || root->left == nullptr)
-        return;
-
-    Node* leftChild = root->left;
-    root->left = leftChild->right;
-    if (leftChild->right != nullptr)
-        leftChild->right->parent = root;
-
-    leftChild->parent = root->parent;
-    if (root->parent != nullptr) {
-        if (root == root->parent->left)
-            root->parent->left = leftChild;
-        else
-            root->parent->right = leftChild;
-    } else {
-        root->parent = leftChild;
-    }
-
-    leftChild->right = root;
-    root->parent = leftChild;
-}
 
 public:
     BST() : root(nullptr) {}
 
-    void insert(int val) {
-        root = insert(root, val);
+    // 삽입 함수
+    void insert(int value) {
+        insert(root, value, nullptr);
     }
 
-    void remove(int val) {
-        root = remove(root, val);
+    void remove(int key) {
+        remove(root, key);
     }
 
-    bool search(int val) {
-        return search(root, val);
+    // 탐색 함수
+        Node* search(int value) {
+        Node* current = root;
+        while (current != nullptr && current->data != value) {
+            if (value < current->data)
+                current = current->left;
+            else
+                current = current->right;
+        }
+        return current;
     }
 
-    void inorderTraversal() {
+    // 트리 출력 함수
+    void printTree() {
         inorderTraversal(root);
-        cout << endl;
     }
 };
 
 int main() {
-  ifstream fin; 
-  ofstream fout;
-  fin.open("1.inp"); 
-  fout.open("1.txt");
+    ifstream fin; 
+    ofstream fout;
+    fin.open("1.inp"); 
+    fout.open("1.txt");
 
-  BST bst;
-  char key;
-  int value;
+    BST bst;
+    char key;
+    int value;
 
-  while(fin >> key >> value){
-    if(value < 0){
-      break;
+    while(fin >> key >> value){
+        if(value < 0){
+            break;
+        }
+
+        if(key == 'i'){
+            bst.insert(value);
+        } else if(key == 'd'){
+            bst.remove(value);
+        } else if(key == 'c'){
+            fout << "color(" << value << "): ";
+            if(bst.search(value)->is_red){
+                fout << "RED" << endl;
+            } else {
+                fout << "BLACK" << endl;
+            }
+        }
     }
-
-    if(key == 'i'){
-        bst.insert(value);
-    }else if(key == 'd'){
-        bst.remove(value);
-    }else if(key == 'c'){
-        fout << "color(" << value << ") : ";
-      if(bst.search(value)){
-        fout << "RED" << endl;
-      }else{
-        fout << "BLACK" << endl;
-      }
-    }
-  }
 
     fin.close();
     fout.close();
 
-  return 0;
+    return 0;
 }
-
