@@ -1,166 +1,496 @@
 #include <iostream>
 #include <fstream>
-#include <sstream>
 
 using namespace std;
 
-template <typename T>
-struct Node {
-    T data;
-    Node<T>* left;
-    Node<T>* right;
-    Node<T>* parent;
-    bool is_red;
+const bool RED = true;
+const bool BLACK = false;
 
-    Node(const T& value)
-        : data(value), left(nullptr), right(nullptr), parent(nullptr), is_red(true) {}
+struct Node
+{
+  int data;
+  Node *parent;
+  Node *left;
+  Node *right;
+  bool is_red;
 };
 
-template <typename T>
-class RedBlackTree {
-private:
-    Node<T>* root;
+typedef Node *NodePtr;
 
-    void rotateLeft(Node<T>*&);
-    void rotateRight(Node<T>*&);
-    void fixInsertion(Node<T>*&);
-    void fixDeletion(Node<T>*);
-    void transplant(Node<T>*, Node<T>*);
+class RedBlackTree
+{
+private:
+  NodePtr root;
+  NodePtr TNULL;
+
+  void initializeNULLNode(NodePtr node, NodePtr parent)
+  {
+    node->data = 0;
+    node->parent = parent;
+    node->left = nullptr;
+    node->right = nullptr;
+    node->is_red = false;
+  }
+
+  NodePtr searchTreeHelper(NodePtr node, int key)
+  {
+    if (node == TNULL || key == node->data)
+    {
+      return node;
+    }
+
+    if (key < node->data)
+    {
+      return searchTreeHelper(node->left, key);
+    }
+    return searchTreeHelper(node->right, key);
+  }
+
+  void deleteFix(NodePtr x)
+  {
+    NodePtr s;
+    while (x != root && !x->is_red)
+    {
+      if (x == x->parent->left)
+      {
+        s = x->parent->right;
+        if (s->is_red)
+        {
+          s->is_red = false;
+          x->parent->is_red = true;
+          leftRotate(x->parent);
+          s = x->parent->right;
+        }
+
+        if (!s->left->is_red && !s->right->is_red)
+        {
+          s->is_red = true;
+          x = x->parent;
+        }
+        else
+        {
+          if (!s->right->is_red)
+          {
+            s->left->is_red = false;
+            s->is_red = true;
+            rightRotate(s);
+            s = x->parent->right;
+          }
+
+          s->is_red = x->parent->is_red;
+          x->parent->is_red = false;
+          s->right->is_red = false;
+          leftRotate(x->parent);
+          x = root;
+        }
+      }
+      else
+      {
+        s = x->parent->left;
+        if (s->is_red)
+        {
+          s->is_red = false;
+          x->parent->is_red = true;
+          rightRotate(x->parent);
+          s = x->parent->left;
+        }
+
+        if (!s->right->is_red && !s->right->is_red)
+        {
+          s->is_red = true;
+          x = x->parent;
+        }
+        else
+        {
+          if (!s->left->is_red)
+          {
+            s->right->is_red = false;
+            s->is_red = true;
+            leftRotate(s);
+            s = x->parent->left;
+          }
+
+          s->is_red = x->parent->is_red;
+          x->parent->is_red = false;
+          s->left->is_red = false;
+          rightRotate(x->parent);
+          x = root;
+        }
+      }
+    }
+    x->is_red = false;
+  }
+
+  void rbTransplant(NodePtr u, NodePtr v)
+  {
+    if (u->parent == nullptr)
+    {
+      root = v;
+    }
+    else if (u == u->parent->left)
+    {
+      u->parent->left = v;
+    }
+    else
+    {
+      u->parent->right = v;
+    }
+    v->parent = u->parent;
+  }
+
+  void deleteNodeHelper(NodePtr node, int key)
+  {
+    NodePtr z = TNULL;
+    NodePtr x, y;
+    while (node != TNULL)
+    {
+      if (node->data == key)
+      {
+        z = node;
+      }
+
+      if (node->data <= key)
+      {
+        node = node->right;
+      }
+      else
+      {
+        node = node->left;
+      }
+    }
+
+    if (z == TNULL)
+    {
+      return;
+    }
+
+    y = z;
+    bool y_original_color = y->is_red;
+    if (z->left == TNULL)
+    {
+      x = z->right;
+      rbTransplant(z, z->right);
+    }
+    else if (z->right == TNULL)
+    {
+      x = z->left;
+      rbTransplant(z, z->left);
+    }
+    else
+    {
+      y = minimum(z->right);
+      y_original_color = y->is_red;
+      x = y->right;
+      if (y->parent == z)
+      {
+        x->parent = y;
+      }
+      else
+      {
+        rbTransplant(y, y->right);
+        y->right = z->right;
+        y->right->parent = y;
+      }
+
+      rbTransplant(z, y);
+      y->left = z->left;
+      y->left->parent = y;
+      y->is_red = z->is_red;
+    }
+    delete z;
+    if (!y_original_color)
+    {
+      deleteFix(x);
+    }
+  }
+
+  void insertFix(NodePtr k)
+  {
+    NodePtr u;
+    while (k->parent->is_red)
+    {
+      if (k->parent == k->parent->parent->right)
+      {
+        u = k->parent->parent->left;
+        if (u->is_red)
+        {
+          u->is_red = false;
+          k->parent->is_red = false;
+          k->parent->parent->is_red = true;
+          k = k->parent->parent;
+        }
+        else
+        {
+          if (k == k->parent->left)
+          {
+            k = k->parent;
+            rightRotate(k);
+          }
+          k->parent->is_red = false;
+          k->parent->parent->is_red = true;
+          leftRotate(k->parent->parent);
+        }
+      }
+      else
+      {
+        u = k->parent->parent->right;
+
+        if (u->is_red)
+        {
+          u->is_red = false;
+          k->parent->is_red = false;
+          k->parent->parent->is_red = true;
+          k = k->parent->parent;
+        }
+        else
+        {
+          if (k == k->parent->right)
+          {
+            k = k->parent;
+            leftRotate(k);
+          }
+          k->parent->is_red = false;
+          k->parent->parent->is_red = true;
+          rightRotate(k->parent->parent);
+        }
+      }
+      if (k == root)
+      {
+        break;
+      }
+    }
+    root->is_red = false;
+  }
 
 public:
-    RedBlackTree() : root(nullptr) {}
-    ~RedBlackTree() {}
+  RedBlackTree()
+  {
+    TNULL = new Node;
+    TNULL->is_red = false;
+    TNULL->left = nullptr;
+    TNULL->right = nullptr;
+    root = TNULL;
+  }
 
-    void insert(const T&);
-    void remove(const T&);
+  NodePtr searchTree(int k)
+  {
+    return searchTreeHelper(this->root, k);
+  }
 
-    Node<T>* search(const T&);
-    Node<T>* minimum(Node<T>*);
-    Node<T>* maximum(Node<T>*);
-    Node<T>* successor(Node<T>*);
-    Node<T>* predecessor(Node<T>*);
+  NodePtr minimum(NodePtr node)
+  {
+    while (node->left != TNULL)
+    {
+      node = node->left;
+    }
+    return node;
+  }
+  NodePtr maximum(NodePtr node)
+  {
+    while (node->right != TNULL)
+    {
+      node = node->right;
+    }
+    return node;
+  }
 
-    void inorderTraversal(Node<T>*);
-    void preorderTraversal(Node<T>*);
-    void postorderTraversal(Node<T>*);
+  NodePtr successor(NodePtr x)
+  {
+    if (x->right != TNULL)
+    {
+      return minimum(x->right);
+    }
 
-    void printTree(Node<T>*, int);
+    NodePtr y = x->parent;
+    while (y != TNULL && x == y->right)
+    {
+      x = y;
+      y = y->parent;
+    }
+    return y;
+  }
+
+  NodePtr predecessor(NodePtr x)
+  {
+    if (x->left != TNULL)
+    {
+      return maximum(x->left);
+    }
+
+    NodePtr y = x->parent;
+    while (y != TNULL && x == y->left)
+    {
+      x = y;
+      y = y->parent;
+    }
+
+    return y;
+  }
+
+  void leftRotate(NodePtr x)
+  {
+    NodePtr y = x->right;
+    x->right = y->left;
+    if (y->left != TNULL)
+    {
+      y->left->parent = x;
+    }
+    y->parent = x->parent;
+    if (x->parent == nullptr)
+    {
+      this->root = y;
+    }
+    else if (x == x->parent->left)
+    {
+      x->parent->left = y;
+    }
+    else
+    {
+      x->parent->right = y;
+    }
+    y->left = x;
+    x->parent = y;
+  }
+
+  void rightRotate(NodePtr x)
+  {
+    NodePtr y = x->left;
+    x->left = y->right;
+    if (y->right != TNULL)
+    {
+      y->right->parent = x;
+    }
+    y->parent = x->parent;
+    if (x->parent == nullptr)
+    {
+      this->root = y;
+    }
+    else if (x == x->parent->right)
+    {
+      x->parent->right = y;
+    }
+    else
+    {
+      x->parent->left = y;
+    }
+    y->right = x;
+    x->parent = y;
+  }
+
+  void insert(int key)
+  {
+    NodePtr node = new Node;
+    node->parent = nullptr;
+    node->data = key;
+    node->left = TNULL;
+    node->right = TNULL;
+    node->is_red = true;
+
+    NodePtr y = nullptr;
+    NodePtr x = this->root;
+
+    while (x != TNULL)
+    {
+      y = x;
+      if (node->data < x->data)
+      {
+        x = x->left;
+      }
+      else
+      {
+        x = x->right;
+      }
+    }
+
+    node->parent = y;
+    if (y == nullptr)
+    {
+      root = node;
+    }
+    else if (node->data < y->data)
+    {
+      y->left = node;
+    }
+    else
+    {
+      y->right = node;
+    }
+
+    if (node->parent == nullptr)
+    {
+      node->is_red = false;
+      return;
+    }
+
+    if (node->parent->parent == nullptr)
+    {
+      return;
+    }
+
+    insertFix(node);
+  }
+
+  NodePtr getRoot()
+  {
+    return this->root;
+  }
+
+  bool searchValue(int value)
+  {
+    NodePtr node = searchTree(value);
+    if (node == nullptr)
+      return false;
+    else
+      return node->is_red;
+  }
+
+  void deleteNode(int data)
+  {
+    deleteNodeHelper(this->root, data);
+  }
 };
 
-template <typename T>
-void RedBlackTree<T>::insert(const T& value) {
-    Node<T>* newNode = new Node<T>(value);
-    Node<T>* parent = nullptr;
-    Node<T>* current = root;
+int main()
+{
+  RedBlackTree bst;
 
-    while (current != nullptr) {
-        parent = current;
-        if (value < current->data)
-            current = current->left;
-        else
-            current = current->right;
+  ifstream fin("rbt.inp");
+  ofstream fout("rbt.out");
+
+  char key;
+  int value;
+
+  while (true)
+  {
+    fin >> key >> value;
+    if (value < 0)
+    {
+      break;
     }
-
-    newNode->parent = parent;
-
-    if (parent == nullptr)
-        root = newNode;
-    else if (value < parent->data)
-        parent->left = newNode;
-    else
-        parent->right = newNode;
-
-    fixInsertion(newNode);
-}
-
-template <typename T>
-void RedBlackTree<T>::remove(const T& value) {
-    Node<T>* nodeToRemove = search(value);
-
-    if (nodeToRemove == nullptr)
-        return;
-
-    Node<T>* x;
-    Node<T>* y = nodeToRemove;
-    bool yOriginalColor = y->is_red;
-
-    if (nodeToRemove->left == nullptr) {
-        x = nodeToRemove->right;
-        transplant(nodeToRemove, nodeToRemove->right);
-    } else if (nodeToRemove->right == nullptr) {
-        x = nodeToRemove->left;
-        transplant(nodeToRemove, nodeToRemove->left);
-    } else {
-        y = minimum(nodeToRemove->right);
-        yOriginalColor = y->is_red;
-        x = y->right;
-        if (y->parent == nodeToRemove)
-            x->parent = y;
-        else {
-            transplant(y, y->right);
-            y->right = nodeToRemove->right;
-            y->right->parent = y;
-        }
-        transplant(nodeToRemove, y);
-        y->left = nodeToRemove->left;
-        y->left->parent = y;
-        y->is_red = nodeToRemove->is_red;
+    if (key == 'i')
+    {
+      bst.insert(value);
     }
-
-    if (!yOriginalColor)
-        fixDeletion(x);
-
-    delete nodeToRemove;
-}
-
-template <typename T>
-Node<T>* RedBlackTree<T>::search(const T& value) {
-    Node<T>* current = root;
-
-    while (current != nullptr && current->data != value) {
-        if (value < current->data)
-            current = current->left;
-        else
-            current = current->right;
+    else if (key == 'c')
+    {
+      bool color = bst.searchValue(value);
+      if (color)
+      {
+        fout << "color(" << value << "): RED" << endl;
+      }
+      else
+      {
+        fout << "color(" << value << "): BLACK" << endl;
+      }
     }
-
-    return current;
-}
-
-int main() {
-    RedBlackTree<int> tree;
-
-    ifstream fin; 
-    ofstream fout;
-    fin.open("1.inp"); 
-    fout.open("1.txt");
-
-    char key;
-    int value;
-
-    while (fin >> key >> value) {
-        switch (key) {
-            case 'i':
-                tree.insert(value);
-                break;
-            case 'c':
-                {
-                    fout << "color(" << value << "): ";
-                    Node<int>* result = tree.search(value);
-
-                    if(result->is_red){
-                        fout << "RED" << endl;
-                    }else{
-                        fout << "BLACK" << endl;
-                    }
-                }
-                break;
-            case 'd':
-                tree.remove(value);
-                break;
-            default:
-                cerr << "Invalid key: " << key << endl;
-        }
+    else if (key == 'd')
+    {
+      bst.deleteNode(value);
     }
-    return 0;
+  }
+
+  fin.close();
+  fout.close();
+
+  return 0;
 }

@@ -1,16 +1,7 @@
-//
-// Red Black Tree Implementation
-//
-#include <bits/stdc++.h>
+#include <iostream>
+#include <fstream>
 
 using namespace std;
-
-//
-// Red Black Tree Definition
-//
-
-#ifndef RED_BLACK_TREE_RBTREE_H
-#define RED_BLACK_TREE_RBTREE_H
 
 enum Color {RED, BLACK, DOUBLE_BLACK};
 
@@ -32,26 +23,20 @@ class RBTree
         void rotateRight(Node *&);
         void fixInsertRBTree(Node *&);
         void fixDeleteRBTree(Node *&);
-        void inorderBST(Node *&);
-        void preorderBST(Node *&);
         int getColor(Node *&);
         void setColor(Node *&, int);
         Node *minValueNode(Node *&);
         Node *maxValueNode(Node *&);
         Node* insertBST(Node *&, Node *&);
         Node* deleteBST(Node *&, int);
+        Node* searchBST(Node *&, int);
         int getBlackHeight(Node *);
     public:
         RBTree();
         void insertValue(int);
         void deleteValue(int);
-        void merge(RBTree);
-        void inorder();
-        void preorder();
+        int searchValue(int);
 };
-
-
-#endif //RED_BLACK_TREE_RBTREE_H
 
 Node::Node(int data) {
     this->data = data;
@@ -92,10 +77,31 @@ Node* RBTree::insertBST(Node *&root, Node *&ptr) {
     return root;
 }
 
+Node* RBTree::searchBST(Node *&root, int value) {
+    Node *current = root;
+
+    while (current != nullptr) {
+        if (value == current->data) {
+            return current;
+        } else if (value < current->data) {
+            current = current->left;
+        } else {
+            current = current->right;
+        }
+    }
+
+    return nullptr;
+}
+
 void RBTree::insertValue(int n) {
     Node *node = new Node(n);
     root = insertBST(root, node);
     fixInsertRBTree(node);
+}
+
+int RBTree::searchValue(int n) {
+    Node *node = searchBST(root, n);
+    return node->color;
 }
 
 void RBTree::rotateLeft(Node *&ptr) {
@@ -305,33 +311,6 @@ void RBTree::deleteValue(int data) {
     fixDeleteRBTree(node);
 }
 
-void RBTree::inorderBST(Node *&ptr) {
-    if (ptr == nullptr)
-        return;
-
-    inorderBST(ptr->left);
-    cout << ptr->data << " " << ptr->color << endl;
-    inorderBST(ptr->right);
-}
-
-void RBTree::inorder() {
-    inorderBST(root);
-}
-
-void RBTree::preorderBST(Node *&ptr) {
-    if (ptr == nullptr)
-        return;
-
-    cout << ptr->data << " " << ptr->color << endl;
-    preorderBST(ptr->left);
-    preorderBST(ptr->right);
-}
-
-void RBTree::preorder() {
-    preorderBST(root);
-    cout << "-------" << endl;
-}
-
 Node *RBTree::minValueNode(Node *&node) {
 
     Node *ptr = node;
@@ -361,131 +340,36 @@ int RBTree::getBlackHeight(Node *node) {
     return blackheight;
 }
 
-// Test case 1 : 5 2 9 1 6 8 0 20 30 35 40 50 0
-// Test case 2 : 3 0 5 0
-// Test case 3 : 2 1 3 0 8 9 4 5 0
-
-void RBTree::merge(RBTree rbTree2) {
-    int temp;
-    Node *c, *temp_ptr;
-    Node *root1 = root;
-    Node *root2 = rbTree2.root;
-    int initialblackheight1 = getBlackHeight(root1);
-    int initialblackheight2 = getBlackHeight(root2);
-    if (initialblackheight1 > initialblackheight2) {
-        c = maxValueNode(root1);
-        temp = c->data;
-        deleteValue(c->data);
-        root1 = root;
-    }
-    else if (initialblackheight2 > initialblackheight1) {
-        c = minValueNode(root2);
-        temp = c->data;
-        rbTree2.deleteValue(c->data);
-        root2 = rbTree2.root;
-    }
-    else {
-        c = minValueNode(root2);
-        temp = c->data;
-        rbTree2.deleteValue(c->data);
-        root2 = rbTree2.root;
-        if (initialblackheight1 != getBlackHeight(root2)) {
-            rbTree2.insertValue(c->data);
-            root2 = rbTree2.root;
-            c = maxValueNode(root1);
-            temp = c->data;
-            deleteValue(c->data);
-            root1 = root;
-        }
-    }
-    setColor(c,RED);
-    int finalblackheight1 = getBlackHeight(root1);
-    int finalblackheight2 = getBlackHeight(root2);
-    if (finalblackheight1 == finalblackheight2) {
-        c->left = root1;
-        root1->parent = c;
-        c->right = root2;
-        root2->parent = c;
-        setColor(c,BLACK);
-        c->data = temp;
-        root = c;
-    }
-    else if (finalblackheight2 > finalblackheight1) {
-        Node *ptr = root2;
-        while (finalblackheight1 != getBlackHeight(ptr)) {
-            temp_ptr = ptr;
-            ptr = ptr->left;
-        }
-        Node *ptr_parent;
-        if (ptr == nullptr)
-            ptr_parent = temp_ptr;
-        else
-            ptr_parent = ptr->parent;
-        c->left = root1;
-        if (root1 != nullptr)
-            root1->parent = c;
-        c->right = ptr;
-        if (ptr != nullptr)
-            ptr->parent = c;
-        ptr_parent->left = c;
-        c->parent = ptr_parent;
-        if (getColor(ptr_parent) == RED) {
-            fixInsertRBTree(c);
-        }
-        else if (getColor(ptr) == RED){
-            fixInsertRBTree(ptr);
-        }
-        c->data = temp;
-        root = root2;
-    }
-    else {
-        Node *ptr = root1;
-        while (finalblackheight2 != getBlackHeight(ptr)) {
-            ptr = ptr->right;
-        }
-        Node *ptr_parent = ptr->parent;
-        c->right = root2;
-        root2->parent = c;
-        c->left = ptr;
-        ptr->parent = c;
-        ptr_parent->right = c;
-        c->parent = ptr_parent;
-        if (getColor(ptr_parent) == RED) {
-            fixInsertRBTree(c);
-        }
-        else if (getColor(ptr) == RED) {
-            fixInsertRBTree(ptr);
-        }
-        c->data = temp;
-        root = root1;
-    }
-    return;
-}
-
 int main() {
-    int data;
-    RBTree rbTree1, rbTree2;
+    RBTree tree; 
 
-    cin >> data;
-    while (data != 0)
-    {
-        rbTree1.insertValue(data);
-        cin >> data;
+    ifstream fin("rbt.inp"); 
+    ofstream fout("rbt.out");
+
+    char key;
+    int value;
+
+    while (true) {
+        fin >> key >> value;
+        if (value < 0) {
+            break;
+        }
+        if (key == 'i') {
+            tree.insertValue(value); 
+        } else if (key == 'c') {
+            int color = tree.searchValue(value);
+            if (color == RED) {
+                fout << "color(" << value << "): RED" << endl;
+            } else if (color == BLACK) {
+                fout << "color(" << value << "): BLACK" << endl;
+            }
+        } else if (key == 'd') {
+            tree.deleteValue(value);
+        }
     }
 
-    rbTree1.preorder();
-
-    cin >> data;
-    while (data != 0)
-    {
-        rbTree2.insertValue(data);
-        cin >> data;
-    }
-
-    rbTree2.preorder();
-
-    rbTree1.merge(rbTree2);
-    rbTree1.preorder();
+    fin.close(); 
+    fout.close(); 
 
     return 0;
 }
