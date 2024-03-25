@@ -1,496 +1,308 @@
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 using namespace std;
 
-const bool RED = true;
-const bool BLACK = false;
-
-struct Node
-{
-  int data;
-  Node *parent;
-  Node *left;
-  Node *right;
-  bool is_red;
+struct Node {
+  int key;
+  Node *left = nullptr;
+  Node *right = nullptr;
+  Node *parent = nullptr;
+  bool is_Red = false;
 };
 
 typedef Node *NodePtr;
 
-class RedBlackTree
-{
-private:
+class RedBlackNodeTree {
+ private:
   NodePtr root;
-  NodePtr TNULL;
+  NodePtr leafNode;
 
-  void initializeNULLNode(NodePtr node, NodePtr parent)
-  {
-    node->data = 0;
-    node->parent = parent;
-    node->left = nullptr;
-    node->right = nullptr;
-    node->is_red = false;
+  NodePtr searchNode(int value) {
+    NodePtr temp = root;
+    NodePtr parent = NULL;
+
+    while (temp != NULL && temp->key != value) {
+      parent = temp;
+      temp = (value < parent->key) ? parent->left : parent->right;
+    }
+    return temp;
   }
 
-  NodePtr searchTreeHelper(NodePtr node, int key)
-  {
-    if (node == TNULL || key == node->data)
-    {
-      return node;
-    }
+  void insertNode(int value) {
+    NodePtr node = this->root;
+    NodePtr nodep = nullptr;
+    NodePtr current = new Node();
+    current->key = value;
+    current->is_Red = true;
+    current->parent = nullptr;
+    current->left = leafNode;
+    current->right = leafNode;
 
-    if (key < node->data)
-    {
-      return searchTreeHelper(node->left, key);
-    }
-    return searchTreeHelper(node->right, key);
-  }
-
-  void deleteFix(NodePtr x)
-  {
-    NodePtr s;
-    while (x != root && !x->is_red)
-    {
-      if (x == x->parent->left)
-      {
-        s = x->parent->right;
-        if (s->is_red)
-        {
-          s->is_red = false;
-          x->parent->is_red = true;
-          leftRotate(x->parent);
-          s = x->parent->right;
-        }
-
-        if (!s->left->is_red && !s->right->is_red)
-        {
-          s->is_red = true;
-          x = x->parent;
-        }
-        else
-        {
-          if (!s->right->is_red)
-          {
-            s->left->is_red = false;
-            s->is_red = true;
-            rightRotate(s);
-            s = x->parent->right;
-          }
-
-          s->is_red = x->parent->is_red;
-          x->parent->is_red = false;
-          s->right->is_red = false;
-          leftRotate(x->parent);
-          x = root;
-        }
-      }
-      else
-      {
-        s = x->parent->left;
-        if (s->is_red)
-        {
-          s->is_red = false;
-          x->parent->is_red = true;
-          rightRotate(x->parent);
-          s = x->parent->left;
-        }
-
-        if (!s->right->is_red && !s->right->is_red)
-        {
-          s->is_red = true;
-          x = x->parent;
-        }
-        else
-        {
-          if (!s->left->is_red)
-          {
-            s->right->is_red = false;
-            s->is_red = true;
-            leftRotate(s);
-            s = x->parent->left;
-          }
-
-          s->is_red = x->parent->is_red;
-          x->parent->is_red = false;
-          s->left->is_red = false;
-          rightRotate(x->parent);
-          x = root;
-        }
-      }
-    }
-    x->is_red = false;
-  }
-
-  void rbTransplant(NodePtr u, NodePtr v)
-  {
-    if (u->parent == nullptr)
-    {
-      root = v;
-    }
-    else if (u == u->parent->left)
-    {
-      u->parent->left = v;
-    }
-    else
-    {
-      u->parent->right = v;
-    }
-    v->parent = u->parent;
-  }
-
-  void deleteNodeHelper(NodePtr node, int key)
-  {
-    NodePtr z = TNULL;
-    NodePtr x, y;
-    while (node != TNULL)
-    {
-      if (node->data == key)
-      {
-        z = node;
-      }
-
-      if (node->data <= key)
-      {
+    while (node != leafNode) {
+      nodep = node;
+      if (node->key < value)
         node = node->right;
-      }
       else
-      {
         node = node->left;
-      }
     }
 
-    if (z == TNULL)
-    {
+    current->parent = nodep;
+
+    if (nodep == nullptr)
+      root = current;
+    else if (current->key > nodep->key)
+      nodep->right = current;
+    else
+      nodep->left = current;
+
+    if (current->parent == nullptr) {
+      current->is_Red = false;
       return;
     }
+    if (current->parent->parent == nullptr) {
+      return;
+    }
+    insertFixUp(current);
 
-    y = z;
-    bool y_original_color = y->is_red;
-    if (z->left == TNULL)
-    {
-      x = z->right;
-      rbTransplant(z, z->right);
+    return;
+  }
+
+  void insertFixUp(NodePtr current) {
+    while (current != root && current->parent->is_Red) {
+      NodePtr grandparent = current->parent->parent;
+      NodePtr uncle = (current->parent == grandparent->left)
+                          ? grandparent->right
+                          : grandparent->left;
+      bool side = (current->parent == grandparent->left) ? true : false;
+
+      if (uncle && uncle->is_Red) {
+        current->parent->is_Red = false;
+        uncle->is_Red = false;
+        grandparent->is_Red = true;
+        current = grandparent;
+      }
+
+      else {
+        if (current ==
+            (side ? current->parent->right : current->parent->left)) {
+          current = current->parent;
+          side ? rotateLeft(current) : rotateRight(current);
+        }
+        current->parent->is_Red = false;
+        grandparent->is_Red = true;
+        side ? rotateRight(grandparent) : rotateLeft(grandparent);
+      }
     }
-    else if (z->right == TNULL)
-    {
-      x = z->left;
-      rbTransplant(z, z->left);
+    root->is_Red = false;
+  }
+
+  bool deleteNode(int value) {
+    NodePtr current = searchNode(value);
+    if (!current)
+      return false;
+    else {
+      NodePtr node, nodep;
+      bool OriginalColor = current->is_Red;
+
+      if (current->left == leafNode) {
+        node = current->right;
+        transplant(current, current->right);
+      } else if (current->right == leafNode) {
+        node = current->left;
+        transplant(current, current->left);
+      } else {
+        nodep = minimum(current->right);
+        OriginalColor = nodep->is_Red;
+        node = nodep->right;
+
+        if (nodep->parent == current) {
+          node->parent = nodep;
+        } else {
+          transplant(nodep, nodep->right);
+          nodep->right = current->right;
+          nodep->right->parent = nodep;
+        }
+        transplant(current, nodep);
+        nodep->left = current->left;
+        nodep->left->parent = nodep;
+        nodep->is_Red = current->is_Red;
+      }
+      delete current;
+      if (!OriginalColor) {
+        deleteFixUp(node);
+      }
     }
+    return true;
+  }
+
+  void deleteFixUp(NodePtr node) {
+    NodePtr sibling;
+
+    while (node != root && !node->is_Red) {
+      if (node == node->parent->left) {
+        sibling = node->parent->right;
+        if (sibling->is_Red) {
+          sibling->is_Red = false;
+          node->parent->is_Red = true;
+          rotateLeft(node->parent);
+          sibling = node->parent->right;
+        }
+        if (!sibling->left->is_Red && !sibling->right->is_Red) {
+          sibling->is_Red = true;
+          node = node->parent;
+        } else {
+          if (!sibling->right->is_Red) {
+            sibling->left->is_Red = false;
+            sibling->is_Red = true;
+            rotateRight(sibling);
+            sibling = node->parent->right;
+          }
+          sibling->is_Red = node->parent->is_Red;
+          node->parent->is_Red = false;
+          sibling->right->is_Red = false;
+          rotateLeft(node->parent);
+          node = root;
+        }
+      }
+
+      else {
+        sibling = node->parent->left;
+        if (sibling->is_Red) {
+          sibling->is_Red = false;
+          node->parent->is_Red = true;
+          rotateRight(node->parent);
+          sibling = node->parent->left;
+        }
+
+        if (!sibling->left->is_Red && !sibling->right->is_Red) {
+          sibling->is_Red = true;
+          node = node->parent;
+        } else {
+          if (!sibling->left->is_Red) {
+            sibling->right->is_Red = false;
+            sibling->is_Red = true;
+            rotateLeft(sibling);
+            sibling = node->parent->left;
+          }
+          sibling->is_Red = node->parent->is_Red;
+          node->parent->is_Red = false;
+          sibling->left->is_Red = false;
+          rotateRight(node->parent);
+          node = root;
+        }
+      }
+    }
+    node->is_Red = false;
+  }
+
+  void transplant(NodePtr node, NodePtr uncle) {
+    if (node->parent == nullptr)
+      root = uncle;
+    else if (node == node->parent->left)
+      node->parent->left = uncle;
     else
-    {
-      y = minimum(z->right);
-      y_original_color = y->is_red;
-      x = y->right;
-      if (y->parent == z)
-      {
-        x->parent = y;
-      }
-      else
-      {
-        rbTransplant(y, y->right);
-        y->right = z->right;
-        y->right->parent = y;
-      }
+      node->parent->right = uncle;
 
-      rbTransplant(z, y);
-      y->left = z->left;
-      y->left->parent = y;
-      y->is_red = z->is_red;
+    uncle->parent = node->parent;
+  }
+
+  void rotateLeft(NodePtr node) {
+    NodePtr nodep;
+
+    nodep = node->right;
+    node->right = nodep->left;
+    if (nodep->left != leafNode) {
+      nodep->left->parent = node;
     }
-    delete z;
-    if (!y_original_color)
-    {
-      deleteFix(x);
+    nodep->parent = node->parent;
+
+    if (!node->parent) {
+      root = nodep;
+    } else if (node == node->parent->left) {
+      node->parent->left = nodep;
+    } else {
+      node->parent->right = nodep;
     }
+    node->parent = nodep;
+    nodep->left = node;
   }
 
-  void insertFix(NodePtr k)
-  {
-    NodePtr u;
-    while (k->parent->is_red)
-    {
-      if (k->parent == k->parent->parent->right)
-      {
-        u = k->parent->parent->left;
-        if (u->is_red)
-        {
-          u->is_red = false;
-          k->parent->is_red = false;
-          k->parent->parent->is_red = true;
-          k = k->parent->parent;
-        }
-        else
-        {
-          if (k == k->parent->left)
-          {
-            k = k->parent;
-            rightRotate(k);
-          }
-          k->parent->is_red = false;
-          k->parent->parent->is_red = true;
-          leftRotate(k->parent->parent);
-        }
-      }
-      else
-      {
-        u = k->parent->parent->right;
+  void rotateRight(NodePtr nodep) {
+    NodePtr node;
 
-        if (u->is_red)
-        {
-          u->is_red = false;
-          k->parent->is_red = false;
-          k->parent->parent->is_red = true;
-          k = k->parent->parent;
-        }
-        else
-        {
-          if (k == k->parent->right)
-          {
-            k = k->parent;
-            leftRotate(k);
-          }
-          k->parent->is_red = false;
-          k->parent->parent->is_red = true;
-          rightRotate(k->parent->parent);
-        }
-      }
-      if (k == root)
-      {
-        break;
-      }
+    node = nodep->left;
+    nodep->left = node->right;
+    if (node->right != leafNode) {
+      node->right->parent = nodep;
     }
-    root->is_red = false;
+    node->parent = nodep->parent;
+
+    if (!nodep->parent) {
+      root = node;
+    } else if (nodep == nodep->parent->left) {
+      nodep->parent->left = node;
+    } else {
+      nodep->parent->right = node;
+    }
+    nodep->parent = node;
+    node->right = nodep;
   }
 
-public:
-  RedBlackTree()
-  {
-    TNULL = new Node;
-    TNULL->is_red = false;
-    TNULL->left = nullptr;
-    TNULL->right = nullptr;
-    root = TNULL;
+ public:
+  RedBlackNodeTree() {
+    leafNode = new Node;
+    leafNode->is_Red = false;
+    leafNode->left = nullptr;
+    leafNode->right = nullptr;
+    leafNode->parent = nullptr;
+    root = leafNode;
   }
-
-  NodePtr searchTree(int k)
-  {
-    return searchTreeHelper(this->root, k);
-  }
-
-  NodePtr minimum(NodePtr node)
-  {
-    while (node->left != TNULL)
-    {
+  NodePtr minimum(NodePtr node) {
+    while (node->left != leafNode) {
       node = node->left;
     }
     return node;
   }
-  NodePtr maximum(NodePtr node)
-  {
-    while (node->right != TNULL)
-    {
-      node = node->right;
-    }
-    return node;
-  }
 
-  NodePtr successor(NodePtr x)
-  {
-    if (x->right != TNULL)
-    {
-      return minimum(x->right);
-    }
+  void insertValue(int value) { insertNode(value); }
 
-    NodePtr y = x->parent;
-    while (y != TNULL && x == y->right)
-    {
-      x = y;
-      y = y->parent;
-    }
-    return y;
-  }
+  void deleteValue(int value) { deleteNode(value); }
 
-  NodePtr predecessor(NodePtr x)
-  {
-    if (x->left != TNULL)
-    {
-      return maximum(x->left);
-    }
-
-    NodePtr y = x->parent;
-    while (y != TNULL && x == y->left)
-    {
-      x = y;
-      y = y->parent;
-    }
-
-    return y;
-  }
-
-  void leftRotate(NodePtr x)
-  {
-    NodePtr y = x->right;
-    x->right = y->left;
-    if (y->left != TNULL)
-    {
-      y->left->parent = x;
-    }
-    y->parent = x->parent;
-    if (x->parent == nullptr)
-    {
-      this->root = y;
-    }
-    else if (x == x->parent->left)
-    {
-      x->parent->left = y;
-    }
-    else
-    {
-      x->parent->right = y;
-    }
-    y->left = x;
-    x->parent = y;
-  }
-
-  void rightRotate(NodePtr x)
-  {
-    NodePtr y = x->left;
-    x->left = y->right;
-    if (y->right != TNULL)
-    {
-      y->right->parent = x;
-    }
-    y->parent = x->parent;
-    if (x->parent == nullptr)
-    {
-      this->root = y;
-    }
-    else if (x == x->parent->right)
-    {
-      x->parent->right = y;
-    }
-    else
-    {
-      x->parent->left = y;
-    }
-    y->right = x;
-    x->parent = y;
-  }
-
-  void insert(int key)
-  {
-    NodePtr node = new Node;
-    node->parent = nullptr;
-    node->data = key;
-    node->left = TNULL;
-    node->right = TNULL;
-    node->is_red = true;
-
-    NodePtr y = nullptr;
-    NodePtr x = this->root;
-
-    while (x != TNULL)
-    {
-      y = x;
-      if (node->data < x->data)
-      {
-        x = x->left;
-      }
-      else
-      {
-        x = x->right;
-      }
-    }
-
-    node->parent = y;
-    if (y == nullptr)
-    {
-      root = node;
-    }
-    else if (node->data < y->data)
-    {
-      y->left = node;
-    }
-    else
-    {
-      y->right = node;
-    }
-
-    if (node->parent == nullptr)
-    {
-      node->is_red = false;
-      return;
-    }
-
-    if (node->parent->parent == nullptr)
-    {
-      return;
-    }
-
-    insertFix(node);
-  }
-
-  NodePtr getRoot()
-  {
-    return this->root;
-  }
-
-  bool searchValue(int value)
-  {
-    NodePtr node = searchTree(value);
-    if (node == nullptr)
-      return false;
-    else
-      return node->is_red;
-  }
-
-  void deleteNode(int data)
-  {
-    deleteNodeHelper(this->root, data);
+  bool searchValue(int value) {
+    NodePtr node = searchNode(value);
+    return node->is_Red;
   }
 };
 
-int main()
-{
-  RedBlackTree bst;
+int main() {
+  RedBlackNodeTree bst;
 
-  ifstream fin("rbt.inp");
-  ofstream fout("rbt.out");
+  ifstream fin;
+  ofstream fout;
+  fin.open("rbt.inp");
+  fout.open("rbt.out");
 
   char key;
   int value;
 
-  while (true)
-  {
-    fin >> key >> value;
-    if (value < 0)
-    {
+  while (fin >> key >> value) {
+    if (value < 0) {
       break;
     }
-    if (key == 'i')
-    {
-      bst.insert(value);
-    }
-    else if (key == 'c')
-    {
+    if (key == 'i') {
+      bst.insertValue(value);
+    } else if (key == 'c') {
       bool color = bst.searchValue(value);
-      if (color)
-      {
+      if (color) {
         fout << "color(" << value << "): RED" << endl;
-      }
-      else
-      {
+      } else {
         fout << "color(" << value << "): BLACK" << endl;
       }
-    }
-    else if (key == 'd')
-    {
-      bst.deleteNode(value);
+    } else if (key == 'd') {
+      bst.deleteValue(value);
     }
   }
-
-  fin.close();
-  fout.close();
 
   return 0;
 }

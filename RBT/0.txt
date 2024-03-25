@@ -1,3 +1,0 @@
-color(0): RED
-color(7): BLACK
-color(3): RED
