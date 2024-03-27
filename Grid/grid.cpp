@@ -1,129 +1,101 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include <deque>
+
+#define MOD 1000000007
 
 using namespace std;
 
-struct grid
-{
+struct Cell {
   int state;
-  deque<int> d;
+  vector<int> possibilities;
 
-  grid() : state(0){}
+  Cell() : state(0) {}
 };
 
+int addMod(int a, int b) { return (a % MOD + b % MOD) % MOD; }
+
 int main() {
-  ifstream fin;
-  ofstream fout;
-  fin.open("0.inp");
-  fout.open("0.txt");
+  ifstream fin("0.inp");
+  ofstream fout("0.txt");
 
-  int t;
-  fin >> t;
+  int test_cases;
+  fin >> test_cases;
 
-  for (int j = 0; j < t; j++) {
-    int x, y, a, b, g;
-    fin >> x >> y >> a >> b >> g;
+  for (int t = 0; t < test_cases; ++t) {
+    int rows, cols, a, b, k;
+    fin >> rows >> cols >> a >> b >> k;
 
-    vector<vector<grid>> vector2D(x+1, vector<grid>(y+1));
+    vector<vector<Cell>> grid(rows + 1, vector<Cell>(cols + 1));
 
-    for (int i = 0; i <= x; i++)
-    {
-      for (int q = 0; q <= y; q++)
-      {
-        vector2D[i][q].d = deque<int>(g+1, 0);
+    for (int i = 0; i <= rows; ++i) {
+      for (int j = 0; j <= cols; ++j) {
+        grid[i][j].possibilities = vector<int>(k + 1, 0);
       }
     }
 
-    for (int i = 0; i < a; i++)
-    {
-      int q, w;
-      fin>>q>>w;
-      vector2D[q][w].state = 1;
+    for (int i = 0; i < a; ++i) {
+      int x, y;
+      fin >> x >> y;
+      grid[x][y].state = 1;
     }
-    for (int i = 0; i < b; i++)
-    {
-      int q, w;
-      fin>>q>>w;
-      vector2D[q][w].state = 2;
-    }
-    
-    vector2D[0][0].d.push_front(1);
-    vector2D[0][0].d.pop_back();
-    for (int i = 1; i <= x; i++)
-  {
-        
-        if(vector2D[i][0].state==1){
-          vector2D[i][0].d = vector2D[i-1][0].d;
-          int n = vector2D[i][0].d.back();
-        vector2D[i][0].d.pop_back();
-        vector2D[i][0].d.back() += n;
-        vector2D[i][0].d.push_front(0);
-        }else if(vector2D[i][0].state==0){
-          vector2D[i][0].d = vector2D[i-1][0].d;
-        }
-        
-  }
 
-    for (int i = 1; i <= y; i++)
-  {
-        if(vector2D[0][i].state==1){
-          vector2D[0][i].d = vector2D[0][i-1].d;
-          int n = vector2D[0][i].d.back();
-          cout << "Deque elements: ";
-    for (int u = 0; u < vector2D[0][i].d.size(); ++u) {
-        cout << vector2D[0][i].d[u] << " ";
+    for (int i = 0; i < b; ++i) {
+      int x, y;
+      fin >> x >> y;
+      grid[x][y].state = 2;
     }
-    cout << endl;
-        vector2D[0][i].d.pop_back();
-        vector2D[0][i].d.back() += n;
-        if(vector2D[0][i].d.empty()){
-            cout << endl;
-        }
-        vector2D[0][i].d.push_front(0);
-        }else if(vector2D[0][i].state==0){
-          vector2D[0][i].d = vector2D[0][i-1].d;
-        }
-        
-  }
-  
 
-  for (int i = 1; i < x; i++)
-  {
-    for (int k = 1; k < y; k++)
-    {
-      if(vector2D[i][k].state==0){
-          deque<int> d, q, e;
-          q = vector2D[x - 1][y].d;
-          e = vector2D[x][y - 1].d;
-          for (int l = 0; l < g+1; l++)
-          {
-              d.push_back(q[i] + e[i]);
-          }
-          vector2D[i][k].d = d;
-      }else if(vector2D[i][k].state == 1){
-        deque<int> d, q, e;
-          q = vector2D[x - 1][y].d;
-          e = vector2D[x][y - 1].d;
-          for (int l = 0; l < g+1; l++)
-          {
-              d.push_back(q[i] + e[i]);
-          }
-          int n = d.back();
-          d.pop_back();
-          d.back() += n;
-          d.push_front(0);
-          vector2D[i][k].d = d;
+    grid[0][0].possibilities[0] = 1;
+
+    for (int i = 1; i <= rows; ++i) {
+      if (grid[i][0].state == 1) {
+        grid[i][0].possibilities = grid[i - 1][0].possibilities;
+        grid[i][0].possibilities.push_back(0);
+        grid[i][0].possibilities.back() = addMod(
+            grid[i][0].possibilities.back(),
+            grid[i][0].possibilities[grid[i][0].possibilities.size() - 2]);
+      } else if (grid[i][0].state == 0) {
+        grid[i][0].possibilities = grid[i - 1][0].possibilities;
       }
     }
-    
-  }
 
-  fout << vector2D[x][y].d.back() << endl;
-  }
+    for (int j = 1; j <= cols; ++j) {
+      if (grid[0][j].state == 1) {
+        grid[0][j].possibilities = grid[0][j - 1].possibilities;
+        grid[0][j].possibilities.push_back(0);
+        grid[0][j].possibilities.back() = addMod(
+            grid[0][j].possibilities.back(),
+            grid[0][j].possibilities[grid[0][j].possibilities.size() - 2]);
+      } else if (grid[0][j].state == 0) {
+        grid[0][j].possibilities = grid[0][j - 1].possibilities;
+      }
+    }
 
-    
+    for (int i = 1; i <= rows; ++i) {
+      for (int j = 1; j <= cols; ++j) {
+        if (grid[i][j].state == 0) {
+          for (int l = 0; l < k + 1; ++l) {
+            grid[i][j].possibilities[l] =
+                addMod(grid[i - 1][j].possibilities[l],
+                       grid[i][j - 1].possibilities[l]);
+          }
+        } else if (grid[i][j].state == 1) {
+          for (int l = 0; l < k + 1; ++l) {
+            grid[i][j].possibilities[l] =
+                addMod(grid[i - 1][j].possibilities[l],
+                       grid[i][j - 1].possibilities[l]);
+          }
+          grid[i][j].possibilities.push_back(0);
+          grid[i][j].possibilities.back() = addMod(
+              grid[i][j].possibilities.back(),
+              grid[i][j].possibilities[grid[i][j].possibilities.size() - 2]);
+        }
+      }
+    }
+
+    fout << grid[rows][cols].possibilities.back() << endl;
+  }
 
   fin.close();
   fout.close();
