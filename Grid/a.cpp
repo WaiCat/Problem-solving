@@ -38,8 +38,8 @@ void display(vector<vector<int>> map, int x, int y) {  // dim, col, row
 }
 
 int main() {
-  fin.open("1.inp");
-  fout.open("grid.out");
+  fin.open("2.inp");
+  fout.open("2.txt");
   int T;
   fin >> T;
   while (T > 0) {
@@ -80,18 +80,17 @@ int main() {
         dp[d][0][i] = CONNECT;
     }
 
-    for (int i = 1; i < y + 1; i++) {    // column
-      for (int j = 1; j < x + 1; j++) {  // row
+    for (int i = 1; i < y + 1; i++) {
+      for (int j = 1; j < x + 1; j++) {
         int cur_value = map[i][j];
-        if (cur_value == CONNECT) {  // 연결
+        if (cur_value == CONNECT) {
           for (int dim = 0; dim < k + 1; dim++) {
             dp[dim][i][j] =
                 (dp[dim][i - 1][j] % MODULE + dp[dim][i][j - 1] % MODULE) %
                 MODULE;
           }
-        } else if (cur_value == DISCONNECT) {  // 끊어졌을 때
-
-        } else if (cur_value == ESSENTIAL) {  // 필수적으로 가야될 때
+        } else if (cur_value == DISCONNECT) {
+        } else if (cur_value == ESSENTIAL) {
           for (int dim = 0; dim < k + 1; dim++) {
             dp[dim][i][j] =
                 (dp[dim][i - 1][j] % MODULE + dp[dim][i][j - 1] % MODULE) %
@@ -112,7 +111,6 @@ int main() {
       }
     }
     fout << dp[k][y][x] << endl;
-    // display(map, x, y);
     T--;
   }
 
