@@ -5,7 +5,7 @@
 using namespace std;
 
 int arr[1000001];
-int tree[2000001];
+int tree[2000002];
 
 void build_tree(int node, int start, int end) {
     if (start == end) {
@@ -32,7 +32,7 @@ void update_tree(int node, int start, int end, int index, int value) {
         tree[node] = min(tree[2 * node], tree[2 * node + 1]);
     }
 }
-
+    
 int query_tree(int node, int start, int end, int left, int right) {
     if (start > right || end < left) {
         return numeric_limits<int>::max();
@@ -68,11 +68,11 @@ int main() {
         } else if (command == 'q') {
             int start, end;
             fin >> start >> end;
-            sum += query_tree(1, 0, n - 1, start - 1, end - 1);
+            sum += query_tree(1, 0, n - 1, start, end)%100000;
         } else if (command == 'c') {
             int index, value;
             fin >> index >> value;
-            update_tree(1, 0, n - 1, index - 1, value);
+            update_tree(1, 0, n - 1, index, value);
         }
     }
     fout << sum;
