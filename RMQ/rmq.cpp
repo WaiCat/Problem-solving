@@ -5,27 +5,33 @@
 
 using namespace std;
 
-int arr[100];
-int tree[100];
-
 struct IndexPair {
   int Value;
   int Index;
+
+  IndexPair() : Value(0), Index(0) {}
+
+  IndexPair(int value, int index) : Value(value), Index(index) {}
 };
+
+int arr[1000001];
+IndexPair tree[2000002];
 
 void build_tree(int node, int start, int end) {
   if (start == end) {
-    tree[node] = start;
+    tree[node] = IndexPair(arr[start], start);
   } else {
     int mid = (start + end) / 2;
     build_tree(2 * node, start, mid);
     build_tree(2 * node + 1, mid + 1, end);
-    if (arr[tree[2 * node]] < arr[tree[2 * node + 1]])
+    if (tree[2 * node].Value < tree[2 * node + 1].Value)
       tree[node] = tree[2 * node];
-    else if (arr[tree[2 * node]] > arr[tree[2 * node + 1]])
+    else if (tree[2 * node].Value > tree[2 * node + 1].Value)
       tree[node] = tree[2 * node + 1];
     else
-      tree[node] = min(tree[2 * node], tree[2 * node + 1]);
+      tree[node] = (tree[2 * node].Index < tree[2 * node + 1].Index)
+                       ? tree[2 * node]
+                       : tree[2 * node + 1];
   }
 }
 
@@ -34,7 +40,7 @@ IndexPair query_tree(int node, int start, int end, int left, int right) {
     return {numeric_limits<int>::max(), -1};
   }
   if (left <= start && end <= right) {
-    return {arr[tree[node]], tree[node]};
+    return tree[node];
   }
   int mid = (start + end) / 2;
   IndexPair leftResult = query_tree(2 * node, start, mid, left, right);
@@ -50,7 +56,7 @@ IndexPair query_tree(int node, int start, int end, int left, int right) {
 void update_tree(int node, int start, int end, int index, int value) {
   if (start == end) {
     arr[index] = value;
-    tree[node] = index;
+    tree[node] = IndexPair(value, index);
   } else {
     int mid = (start + end) / 2;
     if (index <= mid) {
@@ -58,18 +64,20 @@ void update_tree(int node, int start, int end, int index, int value) {
     } else {
       update_tree(2 * node + 1, mid + 1, end, index, value);
     }
-    if (arr[tree[2 * node]] < arr[tree[2 * node + 1]])
+    if (tree[2 * node].Value < tree[2 * node + 1].Value)
       tree[node] = tree[2 * node];
-    else if (arr[tree[2 * node]] > arr[tree[2 * node + 1]])
+    else if (tree[2 * node].Value > tree[2 * node + 1].Value)
       tree[node] = tree[2 * node + 1];
     else
-      tree[node] = min(tree[2 * node], tree[2 * node + 1]);
+      tree[node] = (tree[2 * node].Index < tree[2 * node + 1].Index)
+                       ? tree[2 * node]
+                       : tree[2 * node + 1];
   }
 }
 
 int main() {
-  ifstream fin("0.inp");
-  ofstream fout("0.txt");
+  ifstream fin("rmq.inp");
+  ofstream fout("rmq.out");
 
   int n;
   fin >> n;
