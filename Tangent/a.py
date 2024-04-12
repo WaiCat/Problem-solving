@@ -2,77 +2,64 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
 
-# 주어진 다각형의 좌표들
-polygon1 = np.array([
-    [-12, 50],
-    [0, 23],
-    [14, 7],
-    [6, 8],
-    [10, -3],
-    [22, 5],
-    [20, 0],
-    [33, 5],
-    [25, 20],
-    [12, 25]
-])
+def find_end_tangents(points1, points2):
+    # 두 다각형의 Convex Hull 계산
+    hull1 = ConvexHull(points1)
+    hull2 = ConvexHull(points2)
+    
+    # Convex Hull의 꼭짓점들
+    vertices1 = hull1.points[hull1.vertices]
+    vertices2 = hull2.points[hull2.vertices]
+    
+    # 다각형 1의 가장 먼 두 점
+    max_distance1 = 0
+    end_points1 = None
+    for i in range(len(vertices1)):
+        for j in range(i + 1, len(vertices1)):
+            distance = np.linalg.norm(vertices1[i] - vertices1[j])
+            if distance > max_distance1:
+                max_distance1 = distance
+                end_points1 = (vertices1[i], vertices1[j])
+    
+    # 다각형 2의 가장 먼 두 점
+    max_distance2 = 0
+    end_points2 = None
+    for i in range(len(vertices2)):
+        for j in range(i + 1, len(vertices2)):
+            distance = np.linalg.norm(vertices2[i] - vertices2[j])
+            if distance > max_distance2:
+                max_distance2 = distance
+                end_points2 = (vertices2[i], vertices2[j])
+    
+    return [(end_points1[0], end_points2[0]), (end_points1[1], end_points2[1])]
 
-polygon2 = np.array([
-    [100, 20],
-    [120, 30],
-    [135, 76],
-    [111, 45],
-    [121, 99],
-    [131, 100],
-    [120, 110],
-    [100, 100]
-])
+# 다각형의 좌표를 이어주는 함수
+def connect_endpoints(polygon):
+    return np.concatenate((polygon, [polygon[0]]))
 
-# 두 점 사이의 거리를 계산하는 함수
-def distance(p1, p2):
-    return np.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+# 두 다각형의 좌표
+polygon1 = np.array([[12, 12], [12, 23], [5, 7], [6, 8], [10, -3], [22, 5]])
+polygon2 = np.array([[26, 10], [29, -4], [28, 16], [32, 25], [25, 20]])
 
-# 선분과 점 사이의 최소 거리를 계산하는 함수
-def point_line_distance(point, line_points):
-    p1, p2 = line_points
-    num = abs((p2[1] - p1[1]) * point[0] - (p2[0] - p1[0]) * point[1] + p2[0] * p1[1] - p2[1] * p1[0])
-    den = distance(p1, p2)
-    return num / den
+# 시작점과 끝점을 연결
+polygon1 = connect_endpoints(polygon1)
+polygon2 = connect_endpoints(polygon2)
 
-# 주어진 점에서 다각형의 각 선분까지의 최소 거리를 계산하고, 그 최소 거리를 갖는 선분을 반환하는 함수
-def closest_polygon_edge_from_point(point, polygon):
-    min_distance = np.inf
-    closest_edge = None
-    for i in range(len(polygon)):
-        p1 = polygon[i]
-        p2 = polygon[(i + 1) % len(polygon)]
-        dist = point_line_distance(point, (p1, p2))
-        if dist < min_distance:
-            min_distance = dist
-            closest_edge = (p1, p2)
-    return closest_edge
+# 양 끝에 있는 두 접선 찾기
+end_tangents = find_end_tangents(polygon1, polygon2)
 
-# 각 다각형의 점들에 대해 다른 다각형의 선분 중 최소 거리를 가진 선분을 찾고 그 정보를 저장
-def find_tangent_lines(polygon1, polygon2):
-    tangent_lines = []
-    for point in polygon1:
-        closest_edge = closest_polygon_edge_from_point(point, polygon2)
-        tangent_lines.append((*closest_edge, point))
-    for point in polygon2:
-        closest_edge = closest_polygon_edge_from_point(point, polygon1)
-        tangent_lines.append((*closest_edge, point))
-    return tangent_lines
-
-# 접선을 구하는 함수 실행
-tangent_lines = find_tangent_lines(polygon1, polygon2)
-
-# 결과를 그래프로 표시
-plt.figure(figsize=(10,10))
-plt.plot(polygon1[:,0], polygon1[:,1], 'o-') # 다각형 1을 그린다
-plt.plot(polygon2[:,0], polygon2[:,1], 'o-') # 다각형 2를 그린다
-for line in tangent_lines:
-    p1, p2, point = line
-    plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'k--', lw=1) # 선분을 그린다
-    plt.plot([point[0], (p1[0] + p2[0]) / 2], [point[1], (p1[1] + p2[1]) / 2], 'r--', lw=2) # 점에서 선분 중간까지 접선을 그린다
-
+# 결과를 시각화하여 보여주기
+plt.figure()
+plt.plot(polygon1[:,0], polygon1[:,1], 'ro-', label='Polygon 1')
+plt.plot(polygon2[:,0], polygon2[:,1], 'bo-', label='Polygon 2')
+for line in end_tangents:
+    plt.plot([line[0][0], line[1][0]], [line[0][1], line[1][1]], 'k--')
+for line in end_tangents:
+    print([line[0][0], line[0][1]], [line[1][0], line[1][1]], 'k--')
+plt.title('End Tangents between two polygons')
+plt.xlabel('X')
+plt.ylabel('Y')
+plt.legend()
 plt.grid(True)
+plt.axis('equal')
 plt.show()
