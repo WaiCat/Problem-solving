@@ -1,65 +1,123 @@
+import sys
 import numpy as np
+from collections import namedtuple
 import matplotlib.pyplot as plt
-from scipy.spatial import ConvexHull
 
-def find_end_tangents(points1, points2):
-    # 두 다각형의 Convex Hull 계산
-    hull1 = ConvexHull(points1)
-    hull2 = ConvexHull(points2)
+Point = namedtuple('Point', ['x', 'y', 'ab', 'dx', 'dy', 'idx'])
+
+def ccw(a, b, c):
+    return a.x * b.y + b.x * c.y + c.x * a.y - a.y * b.x - b.y * c.x - c.y * a.x
+
+def swap_points(a, b):
+    return b, a
+
+def make_hull(sz, points, v, flag):
+    hull = []
+    start = v[1].idx if flag else v[0].idx
+    end = v[0].idx if flag else v[1].idx
+    i = start
+    while True:
+        hull.append(points[i])
+        i = (i + 1) % sz
+        if i == end:
+            hull.append(points[i])
+            break
+    return hull
+
+def between(a, b, c):
+    if ccw(a, b, c) != 0:
+        return False
+    if a.x != b.x:
+        if b.x < a.x:
+            a, b = swap_points(a, b)
+        return a.x <= c.x <= b.x
+    else:
+        if b.y < a.y:
+            a, b = swap_points(a, b)
+        return a.y <= c.y <= b.y
     
-    # Convex Hull의 꼭짓점들
-    vertices1 = hull1.points[hull1.vertices]
-    vertices2 = hull2.points[hull2.vertices]
-    
-    # 다각형 1의 가장 먼 두 점
-    max_distance1 = 0
-    end_points1 = None
-    for i in range(len(vertices1)):
-        for j in range(i + 1, len(vertices1)):
-            distance = np.linalg.norm(vertices1[i] - vertices1[j])
-            if distance > max_distance1:
-                max_distance1 = distance
-                end_points1 = (vertices1[i], vertices1[j])
-    
-    # 다각형 2의 가장 먼 두 점
-    max_distance2 = 0
-    end_points2 = None
-    for i in range(len(vertices2)):
-        for j in range(i + 1, len(vertices2)):
-            distance = np.linalg.norm(vertices2[i] - vertices2[j])
-            if distance > max_distance2:
-                max_distance2 = distance
-                end_points2 = (vertices2[i], vertices2[j])
-    
-    return [(end_points1[0], end_points2[0]), (end_points1[1], end_points2[1])]
+def plot_points(points, style, label):
+    x = [p.x for p in points]
+    y = [p.y for p in points]
+    plt.plot(x, y, style, label=label)
 
-# 다각형의 좌표를 이어주는 함수
-def connect_endpoints(polygon):
-    return np.concatenate((polygon, [polygon[0]]))
+def plot_hull(hull, color):
+    for i in range(len(hull)):
+        next_point = hull[(i + 1) % len(hull)]
+        plt.plot([hull[i].x, next_point.x], [hull[i].y, next_point.y], color)
 
-# 두 다각형의 좌표
-polygon1 = np.array([[12, 12], [12, 23], [5, 7], [6, 8], [10, -3], [22, 5]])
-polygon2 = np.array([[26, 10], [29, -4], [28, 16], [32, 25], [25, 20]])
+def plot_tangents(hull, ap, bp):
+    plt.plot([ap.x, bp.x], [ap.y, bp.y], 'r--', label='Tangent')
 
-# 시작점과 끝점을 연결
-polygon1 = connect_endpoints(polygon1)
-polygon2 = connect_endpoints(polygon2)
+def visualize_results(Apos, Bpos, convex, ap, bp):
+    plt.figure(figsize=(10, 6))
+    plot_points(Apos, 'bo', 'A group')
+    plot_points(Bpos, 'go', 'B group')
+    plot_hull(convex, 'k-')
+    if ap and bp:
+        plot_tangents(convex, ap, bp)
+    plt.xlabel('X coordinate')
+    plt.ylabel('Y coordinate')
+    plt.title('Convex Hull and Tangents Visualization')
+    plt.legend()
+    plt.show()
 
-# 양 끝에 있는 두 접선 찾기
-end_tangents = find_end_tangents(polygon1, polygon2)
+def main():
+    input_data = sys.stdin.read().split()
+    index = 0
+    t = int(input_data[index])
+    index += 1
+    for _ in range(t):
+        n = int(input_data[index])
+        index += 1
+        Apos = []
+        for i in range(n):
+            x, y = int(input_data[index]), int(input_data[index+1])
+            index += 2
+            Apos.append(Point(x, y, False, 0, 0, i))
+        m = int(input_data[index])
+        index += 1
+        Bpos = []
+        for i in range(m):
+            x, y = int(input_data[index]), int(input_data[index+1])
+            index += 2
+            Bpos.append(Point(x, y, True, 0, 0, i))
+        
+        pos = Apos + Bpos
+        pos.sort(key=lambda p: (p.x, p.y))
+        
+        for i in range(1, n + m):
+            pos[i] = pos[i]._replace(dx=pos[i].x - pos[0].x, dy=pos[i].y - pos[0].y)
+        pos[1:] = sorted(pos[1:], key=lambda p: (p.dy * pos[0].dx, p.dx * pos[0].dy))
 
-# 결과를 시각화하여 보여주기
-plt.figure()
-plt.plot(polygon1[:,0], polygon1[:,1], 'ro-', label='Polygon 1')
-plt.plot(polygon2[:,0], polygon2[:,1], 'bo-', label='Polygon 2')
-for line in end_tangents:
-    plt.plot([line[0][0], line[1][0]], [line[0][1], line[1][1]], 'k--')
-for line in end_tangents:
-    print([line[0][0], line[0][1]], [line[1][0], line[1][1]], 'k--')
-plt.title('End Tangents between two polygons')
-plt.xlabel('X')
-plt.ylabel('Y')
-plt.legend()
-plt.grid(True)
-plt.axis('equal')
-plt.show()
+        convex = []
+        for p in pos:
+            while len(convex) > 1 and ccw(convex[-2], convex[-1], p) <= 0:
+                convex.pop()
+            convex.append(p)
+
+        sz = len(convex)
+        ap, bp = [], []
+        for i in range(sz):
+            j = (i + 1) % sz
+            if convex[i].ab != convex[j].ab:
+                if convex[i].ab:
+                    bp.append(convex[i])
+                    ap.append(convex[j])
+                else:
+                    ap.append(convex[i])
+                    bp.append(convex[j])
+
+        hull = make_hull(n + m, pos, [ap[0], bp[0]], bp[0].x < ap[0].x)
+        ans = 0
+        for i in range(1, len(hull) - 1):
+            ans += ccw(hull[0], hull[i], hull[i + 1])
+
+        area = abs(ans / 2)
+        print(f'Convex hull area: {area:.1f}')
+
+        # 시각화 함수 호출
+        visualize_results(Apos, Bpos, convex, ap[0], bp[0])
+
+if __name__ == "__main__":
+    main()
