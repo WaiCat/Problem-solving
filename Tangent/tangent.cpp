@@ -64,8 +64,8 @@ double calculatePolygonArea(const vector<Point>& points) {
 }
 
 int main() {
-  ifstream fin("tangent.inp");
-  ofstream fout("tangent.out");
+  ifstream fin("3.inp");
+  ofstream fout("3.txt");
 
   int t;
   fin >> t;
@@ -97,6 +97,12 @@ int main() {
     p3 = findMostClockwisePoint(polygon1[0], polygon2);
     p4 = findMostCounterClockwisePoint(p3, polygon1);
     p3 = findMostClockwisePoint(p4, polygon2);
+
+    cout << "p1: (" << p1.x << ", " << p1.y << ")\n";
+    cout << "p2: (" << p2.x << ", " << p2.y << ")\n";
+    cout << "p3: (" << p3.x << ", " << p3.y << ")\n";
+    cout << "p4: (" << p4.x << ", " << p4.y << ")\n";
+    cout << endl;
 
     vector<Point> tangent1, tangent2;
     bool search = false;
