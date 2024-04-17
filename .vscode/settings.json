@@ -68,6 +68,7 @@
     "thread": "cpp",
     "typeindex": "cpp",
     "valarray": "cpp",
-    "string_view": "cpp"
+    "string_view": "cpp",
+    "stdio.h": "c"
   }
 }

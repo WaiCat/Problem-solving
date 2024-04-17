@@ -64,8 +64,8 @@ double calculatePolygonArea(const vector<Point>& points) {
 }
 
 int main() {
-  ifstream fin("3.inp");
-  ofstream fout("3.txt");
+  ifstream fin("1.inp");
+  ofstream fout("1.txt");
 
   int t;
   fin >> t;
