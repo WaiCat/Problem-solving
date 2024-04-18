@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <fstream>
 #include <stack>
 using namespace std;
 FILE *input_fp, *output_fp;
@@ -225,8 +226,8 @@ int getConvexHull(int n) {
   return idx;
 }
 int main() {
-  input_fp = fopen("tangent.inp", "r");
-  output_fp = fopen("tangent.out", "w");
+  input_fp = fopen("3.inp", "r");
+  output_fp = fopen("3.txt", "w");
   FILE* xyfp = fopen("test.out", "w");
   int n;
   fscanf(input_fp, "%d", &n);
