@@ -21,22 +21,24 @@ bool visited[MAX_TEAMS + 1];
 int assigned[MAX_REGIONS + 1][MAX_PERIODS + 1];
 int team_limit[MAX_TEAMS + 1];
 
-bool canAssign(int team, int max_services) {
-  if (team_limit[team] >= max_services) {
-    return false;
-  }
-  return true;
+bool canAssign(int team) {
+  return team_limit[team] > 0;
 }
 
-bool tryAssign(int team, int max_services) {
+bool tryAssign(int team) {
+  if (!canAssign(team)) return false;
+
   visited[team] = true;
   for (const auto& app : applications[team]) {
     int period = app.period;
     int region = app.region;
-    if (assigned[region][period] == -1 ||
-        (!visited[assigned[region][period]] &&
-         tryAssign(assigned[region][period], max_services))) {
+    if (assigned[region][period] == -1) {
       assigned[region][period] = team;
+      --team_limit[team];
+      return true;
+    } else if (!visited[assigned[region][period]] && tryAssign(assigned[region][period])) {
+      assigned[region][period] = team;
+      --team_limit[team];
       return true;
     }
   }
@@ -44,8 +46,8 @@ bool tryAssign(int team, int max_services) {
 }
 
 int main() {
-  ifstream input("2.inp");
-  ofstream output("2.txt");
+  ifstream input("3.inp");
+  ofstream output("3.txt");
 
   int T;
   input >> T;
@@ -55,6 +57,7 @@ int main() {
 
     for (int i = 1; i <= N; i++) {
       applications[i].clear();
+      team_limit[i] = M; // Set each team's limit to M
     }
 
     vector<int> regions(P + 1);
@@ -76,17 +79,13 @@ int main() {
     memset(assigned, -1, sizeof(assigned));
     for (int i = 1; i <= N; i++) {
       memset(visited, 0, sizeof(visited));
-      if (!tryAssign(i, M)) {
+      if (!tryAssign(i)) {
         possible = false;
         break;
       }
     }
 
-    if (possible) {
-      output << 1 << endl;
-    } else {
-      output << 0 << endl;
-    }
+    output << (possible ? 1 : 0) << endl;
   }
 
   input.close();
