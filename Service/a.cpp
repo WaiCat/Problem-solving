@@ -1,94 +1,78 @@
-#include <algorithm>
+#include <iostream>
+#include <vector>
 #include <cstring>
 #include <fstream>
-#include <iostream>
-#include <queue>
-#include <vector>
+#define MAX 101
 
 using namespace std;
 
-const int MAX_TEAMS = 400;
-const int MAX_PERIODS = 100;
-const int MAX_REGIONS = 100;
-
-struct Application {
-  int period, region;
+struct Node {
+    int layer;
+    int vertex;
 };
 
-vector<Application> applications[MAX_TEAMS + 1];
-int service_regions[MAX_PERIODS + 1];
-bool visited[MAX_TEAMS + 1];
-int assigned[MAX_REGIONS + 1][MAX_PERIODS + 1];
-int team_limit[MAX_TEAMS + 1];
+vector<Node> vtx[MAX][MAX]; // 층별 정점 vtx
+int slt[MAX][MAX]; // vtx가 점유하고 있는 정점
+bool done[MAX][MAX]; // 처리 여부
+int n, m, k; // 정점 수, 간선 수, 층 수
 
-bool canAssign(int team) {
-  return team_limit[team] > 0;
-}
-
-bool tryAssign(int team) {
-  if (!canAssign(team)) return false;
-
-  visited[team] = true;
-  for (const auto& app : applications[team]) {
-    int period = app.period;
-    int region = app.region;
-    if (assigned[region][period] == -1) {
-      assigned[region][period] = team;
-      --team_limit[team];
-      return true;
-    } else if (!visited[assigned[region][period]] && tryAssign(assigned[region][period])) {
-      assigned[region][period] = team;
-      --team_limit[team];
-      return true;
+bool dfs(int layer, int x) {
+    // 연결된 모든 정점에 대해 들어갈 수 있는지 시도
+    for (const Node& node : vtx[layer][x]) {
+        int l = node.layer;
+        int p = node.vertex;
+        // 이미 처리한 정점은 고려하지 않음
+        if (done[l][p]) continue;
+        done[l][p] = true;
+        // 비어있거나 점유 정점에 더 들어갈 공간이 있는 경우
+        if (slt[l][p] == 0 || dfs(slt[l][p] / MAX, slt[l][p] % MAX)) {
+            slt[l][p] = layer * MAX + x;
+            return true;
+        }
     }
-  }
-  return false;
+    return false;
 }
 
 int main() {
-  ifstream input("3.inp");
-  ofstream output("3.txt");
+    // ifstream fin("service.inp");
+  // ofstream fout("service.out");
+
+  ifstream fin("0.inp");
+  ofstream fout("0.txt");
 
   int T;
-  input >> T;
-  while (T--) {
-    int N, P, M;
-    input >> N >> P >> M;
+  fin >> T;
 
-    for (int i = 1; i <= N; i++) {
-      applications[i].clear();
-      team_limit[i] = M; // Set each team's limit to M
+  while(T--){
+
+  fin >> k >> n >> m;
+
+  for (int i = 0; i < m; i++) {
+      int u_layer, u, v_layer, v;
+      fin >> u_layer >> u >> v_layer >> v;
+      vtx[u_layer][u].push_back({v_layer, v});
     }
 
-    vector<int> regions(P + 1);
-    for (int i = 1; i <= P; i++) {
-      input >> regions[i];
+    int cnt = 0; // 매칭 수
+    memset(slt, 0, sizeof(slt));
+
+    for (int layer = 0; layer < k; layer++) {
+        for (int i = 1; i <= n; i++) {
+            memset(done, 0, sizeof(done));
+            if (dfs(layer, i)) cnt++;
+        }
     }
 
-    for (int i = 1; i <= N; i++) {
-      int count;
-      input >> count;
-      for (int j = 0; j < count; j++) {
-        int p, r;
-        input >> p >> r;
-        applications[i].push_back({p, r});
-      }
+    fout << "매칭 " << cnt << "번 성공" << endl;
+    for (int l = 0; l < k; l++) {
+        for (int i = 1; i <= n; i++) {
+            if (slt[l][i] != 0) {
+                fout << "층 " << l << "의 정점 " << i << " => "
+                     << "층 " << slt[l][i] / MAX << "의 정점 " << slt[l][i] % MAX << endl;
+            }
+        }
     }
-
-    bool possible = true;
-    memset(assigned, -1, sizeof(assigned));
-    for (int i = 1; i <= N; i++) {
-      memset(visited, 0, sizeof(visited));
-      if (!tryAssign(i)) {
-        possible = false;
-        break;
-      }
-    }
-
-    output << (possible ? 1 : 0) << endl;
   }
 
-  input.close();
-  output.close();
-  return 0;
+    return 0;
 }
