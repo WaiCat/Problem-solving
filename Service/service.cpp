@@ -1,139 +1,135 @@
-#include <cstring>
+#include <algorithm>
+#include <climits>  // INT_MAX를 사용하기 위해 추가
 #include <fstream>
 #include <iostream>
-#include <limits>
 #include <queue>
+#include <set>
 #include <vector>
 
 using namespace std;
 
-const int MAX = 500;     // 최대 봉사 팀 수 + 지역 수
-int capacity[MAX][MAX];  // 용량
-int flow[MAX][MAX];      // 유량
-vector<int> adj[MAX];    // 인접 리스트
+const int MAX_WORKERS = 100;
+const int MAX_PROJECTS = 2500;
+const int WORKER_PROJECT_OFFSET = 2600;
+const int TOTAL_NODES = 2652;
 
-bool bfs(int source, int sink, vector<int>& parent) {
+const int SOURCE = TOTAL_NODES - 2;
+const int SINK = TOTAL_NODES - 1;
+
+int testCases, numWorkers, numProjects, maxProjectsPerWorker;
+int capacity[TOTAL_NODES][TOTAL_NODES], flow[TOTAL_NODES][TOTAL_NODES];
+vector<int> adj[TOTAL_NODES];
+vector<int> cumulativeProjects;
+
+void initializeGraph() {
+  for (int i = 0; i < TOTAL_NODES; ++i) adj[i].clear();
+  fill(&capacity[0][0], &capacity[TOTAL_NODES - 1][TOTAL_NODES], 0);
+  fill(&flow[0][0], &flow[TOTAL_NODES - 1][TOTAL_NODES], 0);
+}
+
+bool bfs(vector<int>& parent) {
   fill(parent.begin(), parent.end(), -1);
   queue<int> q;
-  q.push(source);
-  parent[source] = source;
+  q.push(SOURCE);
+  parent[SOURCE] = SOURCE;
 
   while (!q.empty()) {
     int cur = q.front();
     q.pop();
-
     for (int next : adj[cur]) {
       if (parent[next] == -1 && capacity[cur][next] > flow[cur][next]) {
-        q.push(next);
         parent[next] = cur;
-        if (next == sink) return true;
+        if (next == SINK) return true;
+        q.push(next);
       }
     }
   }
   return false;
 }
 
-int maxFlow(int source, int sink, int size) {
-  int totalFlow = 0;
-  vector<int> parent(size);
+int edmondsKarp() {
+  int maxFlow = 0;
+  vector<int> parent(TOTAL_NODES);
 
-  while (bfs(source, sink, parent)) {
-    int amount = numeric_limits<int>::max();
-    for (int p = sink; p != source; p = parent[p]) {
-      amount = min(amount, capacity[parent[p]][p] - flow[parent[p]][p]);
+  while (bfs(parent)) {
+    int pathFlow = INT_MAX;
+    for (int v = SINK; v != SOURCE; v = parent[v]) {
+      int u = parent[v];
+      pathFlow = min(pathFlow, capacity[u][v] - flow[u][v]);
     }
 
-    for (int p = sink; p != source; p = parent[p]) {
-      flow[parent[p]][p] += amount;
-      flow[p][parent[p]] -= amount;
+    for (int v = SINK; v != SOURCE; v = parent[v]) {
+      int u = parent[v];
+      flow[u][v] += pathFlow;
+      flow[v][u] -= pathFlow;
     }
-
-    totalFlow += amount;
-  }
-  return totalFlow;
-}
-
-bool isAssignmentPossible(int N, int P, int M, vector<int>& locationsPerPeriod,
-                          vector<vector<pair<int, int>>>& preferences) {
-  int source = N + P, sink = N + P + 1, size = N + P + 2;
-
-  memset(capacity, 0, sizeof(capacity));
-  memset(flow, 0, sizeof(flow));
-  for (int i = 0; i < size; ++i) adj[i].clear();
-
-  // 팀 노드와 소스 연결
-  for (int i = 0; i < N; ++i) {
-    adj[source].push_back(i);
-    adj[i].push_back(source);
-    capacity[source][i] = M;  // 각 팀은 최대 M 번까지 참여 가능
+    maxFlow += pathFlow;
   }
 
-  // 지역 노드와 싱크 연결
-  for (int i = 0; i < P; ++i) {
-    for (int j = 0; j < locationsPerPeriod[i]; ++j) {
-      int loc_index = N + i;  // 지역 노드 시작 인덱스
-      adj[loc_index].push_back(sink);
-      adj[sink].push_back(loc_index);
-      capacity[loc_index][sink] = 1;
-    }
-  }
-
-  // 팀과 지역간 연결
-  for (int i = 0; i < N; ++i) {
-    for (auto& pr : preferences[i]) {
-      int period = pr.first - 1, location = pr.second - 1;
-      int loc_index = N + period;  // 해당 기간의 지역 노드 인덱스
-      adj[i].push_back(loc_index);
-      adj[loc_index].push_back(i);
-      capacity[i][loc_index] = 1;
-    }
-  }
-
-  int max_possible_assignments = maxFlow(source, sink, size);
-  int total_locations = 0;
-  for (int loc : locationsPerPeriod) total_locations += loc;
-
-  return max_possible_assignments == total_locations;
+  return maxFlow;
 }
 
 int main() {
-  // ifstream fin("service.inp");
-  // ofstream fout("service.out");
+  ifstream fin("service.inp");
+  ofstream fout("service.out");
 
-  ifstream fin("0.inp");
-  ofstream fout("0.txt");
+  fin >> testCases;
+  while (testCases--) {
+    fin >> numWorkers >> numProjects >> maxProjectsPerWorker;
+    initializeGraph();
 
-  int T;  // 테스트 케이스 수
-  fin >> T;
-
-  while (T--) {
-    int N, P, M;
-    fin >> N >> P >> M;  // 팀 수, 기간 수, 최대 봉사 가능 횟수
-
-    vector<int> locationsPerPeriod(P);
-    for (int i = 0; i < P; i++) {
-      fin >> locationsPerPeriod[i];  // 각 기간별 봉사 지역 수
+    cumulativeProjects = vector<int>(numProjects + 1, 0);
+    for (int i = 1; i <= numProjects; ++i) {
+      fin >> cumulativeProjects[i];
+      cumulativeProjects[i] += cumulativeProjects[i - 1];
     }
 
-    vector<vector<pair<int, int>>> preferences(N);
-    for (int i = 0; i < N; i++) {
-      int numPreferences;
-      fin >> numPreferences;
-      for (int j = 0; j < numPreferences; j++) {
-        int period, location;
-        fin >> period >> location;
-        preferences[i].push_back(make_pair(period, location));
+    for (int worker = 0; worker < numWorkers; ++worker) {
+      capacity[SOURCE][worker] = maxProjectsPerWorker;
+      adj[SOURCE].push_back(worker);
+      adj[worker].push_back(SOURCE);
+
+      set<int> uniqueProjects;
+      int accessibleProjects;
+      fin >> accessibleProjects;
+
+      for (int j = 0; j < accessibleProjects; ++j) {
+        int project, time;
+        fin >> project >> time;
+        if (time >
+            cumulativeProjects[project] - cumulativeProjects[project - 1])
+          continue;
+        project--;
+        time += MAX_WORKERS - 1;
+        uniqueProjects.insert(project);
+
+        int virtualProjectNode = time + cumulativeProjects[project];
+        capacity[project + WORKER_PROJECT_OFFSET][virtualProjectNode] = 1;
+        adj[project + WORKER_PROJECT_OFFSET].push_back(virtualProjectNode);
+        adj[virtualProjectNode].push_back(project + WORKER_PROJECT_OFFSET);
+      }
+
+      for (int project : uniqueProjects) {
+        capacity[worker][project + WORKER_PROJECT_OFFSET] = 1;
+        adj[worker].push_back(project + WORKER_PROJECT_OFFSET);
+        adj[project + WORKER_PROJECT_OFFSET].push_back(worker);
       }
     }
 
-    if (isAssignmentPossible(N, P, M, locationsPerPeriod, preferences)) {
-      fout << "1\n";
-    } else {
-      fout << "0\n";
+    for (int i = MAX_WORKERS; i < MAX_WORKERS + cumulativeProjects[numProjects];
+         ++i) {
+      capacity[i][SINK] = 1;
+      adj[i].push_back(SINK);
+      adj[SINK].push_back(i);
     }
+    int totalProjectCapacity = cumulativeProjects[numProjects];
+    int maxFlow = edmondsKarp();
+
+    if (maxFlow == totalProjectCapacity)
+      fout << 1 << '\n';
+    else
+      fout << 0 << '\n';
   }
 
-  fin.close();
-  fout.close();
   return 0;
 }
