@@ -1,135 +1,116 @@
-#include <algorithm>
-#include <climits>  // INT_MAX를 사용하기 위해 추가
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <queue>
-#include <set>
 #include <vector>
-
 using namespace std;
 
-const int MAX_WORKERS = 100;
-const int MAX_PROJECTS = 2500;
-const int WORKER_PROJECT_OFFSET = 2600;
-const int TOTAL_NODES = 2652;
+struct Path {
+  int target, capacity;
+  int reverse_index;
+};
 
-const int SOURCE = TOTAL_NODES - 2;
-const int SINK = TOTAL_NODES - 1;
+int Locations[51];
+int total_capacity;
+int END_INDEX;
+vector<Path> paths[10005];
+vector<int> node_numbers;
+vector<int> levels;
 
-int testCases, numWorkers, numProjects, maxProjectsPerWorker;
-int capacity[TOTAL_NODES][TOTAL_NODES], flow[TOTAL_NODES][TOTAL_NODES];
-vector<int> adj[TOTAL_NODES];
-vector<int> cumulativeProjects;
+int depth_first_search(int node, int flow) {
+  if (node == END_INDEX) return flow;
 
-void initializeGraph() {
-  for (int i = 0; i < TOTAL_NODES; ++i) adj[i].clear();
-  fill(&capacity[0][0], &capacity[TOTAL_NODES - 1][TOTAL_NODES], 0);
-  fill(&flow[0][0], &flow[TOTAL_NODES - 1][TOTAL_NODES], 0);
-}
+  for (int& idx = node_numbers[node]; idx < paths[node].size(); ++idx) {
+    Path& edge = paths[node][idx];
 
-bool bfs(vector<int>& parent) {
-  fill(parent.begin(), parent.end(), -1);
-  queue<int> q;
-  q.push(SOURCE);
-  parent[SOURCE] = SOURCE;
-
-  while (!q.empty()) {
-    int cur = q.front();
-    q.pop();
-    for (int next : adj[cur]) {
-      if (parent[next] == -1 && capacity[cur][next] > flow[cur][next]) {
-        parent[next] = cur;
-        if (next == SINK) return true;
-        q.push(next);
+    if (edge.capacity > 0 && levels[edge.target] > levels[node]) {
+      int min_flow = depth_first_search(edge.target, min(flow, edge.capacity));
+      if (min_flow > 0) {
+        edge.capacity -= min_flow;
+        paths[edge.target][edge.reverse_index].capacity += min_flow;
+        return min_flow;
       }
     }
   }
-  return false;
+  return 0;
 }
 
-int edmondsKarp() {
-  int maxFlow = 0;
-  vector<int> parent(TOTAL_NODES);
+void add_edge(int start, int end, int capacity) {
+  paths[start].push_back({end, capacity, (int)paths[end].size()});
+  paths[end].push_back({start, 0, (int)paths[start].size() - 1});
+}
 
-  while (bfs(parent)) {
-    int pathFlow = INT_MAX;
-    for (int v = SINK; v != SOURCE; v = parent[v]) {
-      int u = parent[v];
-      pathFlow = min(pathFlow, capacity[u][v] - flow[u][v]);
-    }
+bool breadth_first_search() {
+  queue<int> q;
+  levels.assign(10005, -1);
+  levels[0] = 0;
+  q.push(0);
 
-    for (int v = SINK; v != SOURCE; v = parent[v]) {
-      int u = parent[v];
-      flow[u][v] += pathFlow;
-      flow[v][u] -= pathFlow;
+  while (!q.empty()) {
+    int current = q.front();
+    q.pop();
+
+    for (const auto& edge : paths[current]) {
+      if (levels[edge.target] == -1 && edge.capacity > 0) {
+        levels[edge.target] = levels[current] + 1;
+        q.push(edge.target);
+      }
     }
-    maxFlow += pathFlow;
   }
-
-  return maxFlow;
+  return levels[END_INDEX] != -1;
 }
 
-int main() {
+int main(void) {
   ifstream fin("service.inp");
   ofstream fout("service.out");
 
-  fin >> testCases;
-  while (testCases--) {
-    fin >> numWorkers >> numProjects >> maxProjectsPerWorker;
-    initializeGraph();
-
-    cumulativeProjects = vector<int>(numProjects + 1, 0);
-    for (int i = 1; i <= numProjects; ++i) {
-      fin >> cumulativeProjects[i];
-      cumulativeProjects[i] += cumulativeProjects[i - 1];
+  int T;
+  fin >> T;
+  while (T--) {
+    int N, P, M;
+    fin >> N >> P >> M;
+    END_INDEX = N + N * P + total_capacity + 1;
+    total_capacity = 0;
+    for (int i = 0; i < 10005; i++) {
+      paths[i].clear();
     }
-
-    for (int worker = 0; worker < numWorkers; ++worker) {
-      capacity[SOURCE][worker] = maxProjectsPerWorker;
-      adj[SOURCE].push_back(worker);
-      adj[worker].push_back(SOURCE);
-
-      set<int> uniqueProjects;
-      int accessibleProjects;
-      fin >> accessibleProjects;
-
-      for (int j = 0; j < accessibleProjects; ++j) {
-        int project, time;
-        fin >> project >> time;
-        if (time >
-            cumulativeProjects[project] - cumulativeProjects[project - 1])
-          continue;
-        project--;
-        time += MAX_WORKERS - 1;
-        uniqueProjects.insert(project);
-
-        int virtualProjectNode = time + cumulativeProjects[project];
-        capacity[project + WORKER_PROJECT_OFFSET][virtualProjectNode] = 1;
-        adj[project + WORKER_PROJECT_OFFSET].push_back(virtualProjectNode);
-        adj[virtualProjectNode].push_back(project + WORKER_PROJECT_OFFSET);
+    int x, y, z;
+    for (int i = 0; i < P; i++) {
+      fin >> x;
+      total_capacity += x;
+      Locations[i + 1] = total_capacity;
+    }
+    for (int i = 0; i < N; i++) {
+      add_edge(0, i + 1, M);
+      fin >> x;
+      for (int j = 1; j <= P; j++) {
+        add_edge(i + 1, N + i * P + j, 1);
       }
-
-      for (int project : uniqueProjects) {
-        capacity[worker][project + WORKER_PROJECT_OFFSET] = 1;
-        adj[worker].push_back(project + WORKER_PROJECT_OFFSET);
-        adj[project + WORKER_PROJECT_OFFSET].push_back(worker);
+      for (int j = 0; j < x; j++) {
+        fin >> y >> z;
+        add_edge(N + i * P + y, N + N * P + z + Locations[y - 1], 1);
       }
     }
-
-    for (int i = MAX_WORKERS; i < MAX_WORKERS + cumulativeProjects[numProjects];
-         ++i) {
-      capacity[i][SINK] = 1;
-      adj[i].push_back(SINK);
-      adj[SINK].push_back(i);
+    for (int i = 1; i <= total_capacity; i++) {
+      add_edge(N + N * P + i, END_INDEX, 1);
     }
-    int totalProjectCapacity = cumulativeProjects[numProjects];
-    int maxFlow = edmondsKarp();
 
-    if (maxFlow == totalProjectCapacity)
-      fout << 1 << '\n';
-    else
-      fout << 0 << '\n';
+    int max_flow = 0;
+
+    while (true) {
+      node_numbers.clear();
+      node_numbers.resize(10005, 0);
+      if (!breadth_first_search()) break;
+      while (true) {
+        int additional_flow = depth_first_search(0, 1e9);
+        if (additional_flow == 0) break;
+        max_flow += additional_flow;
+      }
+    }
+    if (max_flow < total_capacity) {
+      fout << "0" << endl;
+    } else {
+      fout << "1" << endl;
+    }
   }
-
-  return 0;
 }
