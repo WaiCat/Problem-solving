@@ -13,7 +13,7 @@ const vector<string> handRanks = {
     "Four Card", "Straight Flush"};
 
 map<char, int> valueMap = {
-    {'2', 2}, {'3', 3}, {'4', 4}, {'5', 5}, {'6', 6}, {'7', 7}, {'8', 8}, {'9', 9}, {'T', 10}, {'J', 11}, {'Q', 12}, {'K', 13}, {'A', 1}};
+    {'1', 14}, {'2', 2}, {'3', 3}, {'4', 4}, {'5', 5}, {'6', 6}, {'7', 7}, {'8', 8}, {'9', 9}, {'T', 10}, {'J', 11}, {'Q', 12}, {'K', 13}, {'A', 14}};
 
 int getValue(char c)
 {
@@ -27,7 +27,6 @@ bool isStraight(vector<int> &values)
   {
     return true;
   }
-  // Special case for A, 2, 3, 4, 5 straight
   if (values == vector<int>{2, 3, 4, 5, 14})
   {
     return true;
@@ -167,8 +166,8 @@ string findBestHand(vector<string> &cards)
 
 int main()
 {
-  ifstream input("1.inp");
-  ofstream output("1.txt");
+  ifstream input("poker.inp");
+  ofstream output("poker.out");
 
   int testCaseCount;
   input >> testCaseCount;
