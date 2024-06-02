@@ -77,9 +77,6 @@ private:
         return resultStr.empty() ? "0" : resultStr;
     }
 
-
-
-
     static string divideStrings(const string &num1, const string &num2) {
         string result;
         string current;
@@ -116,7 +113,6 @@ private:
 
         return result.empty() ? "0" : result;
     }
-
 
 public:
     BigInt() : value("0"), isNegative(false) {}
@@ -247,7 +243,7 @@ string insertDecimal(string str, int n) {
             if(dotPosition == 0){
                 str.insert(dotPosition, "0.");
             }
-            else{
+            else{ 
                     str.insert(str.size() - n, ".");
             }
         }
@@ -269,7 +265,6 @@ string insertDecimal(string str, int n) {
     if (str == "-0") {
        str = "0";
     }
-
     return str;
 }
 
@@ -324,11 +319,9 @@ string division(string value1, string value2) {
     return resultStr;
 }
 
-
-
 int main() {
-    ifstream fin("double.inp"); // 입력 파일 읽기
-    ofstream fout("double.out"); // 출력 파일 쓰기
+    ifstream fin("1.inp"); // 입력 파일 읽기
+    ofstream fout("1.txt"); // 출력 파일 쓰기
 
     int T;
     fin >> T;
