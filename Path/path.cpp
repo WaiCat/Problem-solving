@@ -1,90 +1,62 @@
 #include <iostream>
-#include <vector>
-#include <algorithm>
-#include <climits>
 #include <fstream>
+#include <algorithm>
+#define MAX_NODES 100001
+#define NEG_INF -1000000001
 
 using namespace std;
 
-// Node structure
-struct Node {
-    int key;
-    Node *left, *right;
-    Node(int key) : key(key), left(nullptr), right(nullptr) {}
-};
+int preorder[MAX_NODES], n, node_cost[MAX_NODES], current_idx, max_path_sum;
 
-// Function to build tree from preorder traversal and keys
-Node* buildTree(vector<int>& keys, vector<int>& preorder, int& preIndex, int inStart, int inEnd, vector<int>& inorderIndex) {
-    if (inStart > inEnd) return nullptr;
-    
-    int rootKey = preorder[preIndex++];
-    Node* root = new Node(keys[rootKey]);
-    
-    if (inStart == inEnd) return root;
-    
-    int inIndex = inorderIndex[rootKey];
-    
-    root->left = buildTree(keys, preorder, preIndex, inStart, inIndex - 1, inorderIndex);
-    root->right = buildTree(keys, preorder, preIndex, inIndex + 1, inEnd, inorderIndex);
-    
-    return root;
-}
-
-// Helper function to find the maximum path sum between any two leaves
-int maxPathSumUtil(Node* root, int& maxSum) {
-    if (!root) return 0;
-    
-    int leftSum = maxPathSumUtil(root->left, maxSum);
-    int rightSum = maxPathSumUtil(root->right, maxSum);
-    
-    if (root->left && root->right) {
-        maxSum = max(maxSum, leftSum + rightSum + root->key);
-        return max(leftSum, rightSum) + root->key;
+int findMaxPathSum(int start, int end) {
+    if (start == end) {
+        max_path_sum = max(max_path_sum, node_cost[start]);
+        current_idx++;
+        return node_cost[start];
     }
-    
-    return (root->left ? leftSum : rightSum) + root->key;
-}
+    if (start > end || current_idx == n) return 0;
 
-// Function to find the maximum path sum between any two leaf nodes
-int findMaxPathSum(Node* root) {
-    int maxSum = INT_MIN;
-    maxPathSumUtil(root, maxSum);
-    return maxSum;
+    int root_pos = start;
+    while (root_pos <= end && preorder[current_idx] != root_pos) {
+        ++root_pos;
+    }
+    current_idx++;
+
+    int left_sum = NEG_INF, right_sum = NEG_INF;
+
+    if (root_pos == end) {
+        left_sum = findMaxPathSum(start, root_pos - 1);
+        return left_sum + node_cost[root_pos];
+    } else if (root_pos == start) {
+        right_sum = findMaxPathSum(root_pos + 1, end);
+        return right_sum + node_cost[root_pos];
+    } else {
+        left_sum = findMaxPathSum(start, root_pos - 1);
+        right_sum = findMaxPathSum(root_pos + 1, end);
+        max_path_sum = max(max_path_sum, left_sum + right_sum + node_cost[root_pos]);
+        return max(left_sum + node_cost[root_pos], right_sum + node_cost[root_pos]);
+    }
 }
 
 int main() {
-    ifstream inputFile("2.inp");
-    ofstream outputFile("2.txt");
-    
+    ifstream fin("path.inp");
+    ofstream fout("path.out");
+
     int T;
-    inputFile >> T;
+
+    fin >> T;
     while (T--) {
-        int n;
-        inputFile >> n;
-        
-        vector<int> keys(n);
-        for (int i = 0; i < n; ++i) {
-            inputFile >> keys[i];
-        }
-        
-        vector<int> preorder(n);
-        for (int i = 0; i < n; ++i) {
-            inputFile >> preorder[i];
-        }
-        
-        vector<int> inorderIndex(n);
-        for (int i = 0; i < n; ++i) {
-            inorderIndex[i] = i;
-        }
-        
-        int preIndex = 0;
-        Node* root = buildTree(keys, preorder, preIndex, 0, n - 1, inorderIndex);
-        
-        outputFile << findMaxPathSum(root) << endl;
+        fin >> n;
+        for (int i = 0; i < n; ++i) fin >> node_cost[i];
+        for (int i = 0; i < n; ++i) fin >> preorder[i];
+        max_path_sum = NEG_INF;
+        current_idx = 0;
+        findMaxPathSum(0, n - 1);
+        fout << max_path_sum << '\n';
     }
-    
-    inputFile.close();
-    outputFile.close();
-    
+
+    fin.close();
+    fout.close();
+
     return 0;
 }
